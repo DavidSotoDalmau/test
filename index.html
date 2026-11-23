@@ -147,7 +147,7 @@ details b { color: var(--ink); }
 <div class="wrap">
   <header class="brand">
     <h1 class="logo">¡Gafa<span>dos!</span></h1>
-    <p class="tag">Piensa distinto o quedas gafado</p>
+    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v3</span></p>
   </header>
   <main id="app"></main>
 </div>
@@ -279,7 +279,9 @@ const BROKERS = ["wss://broker.hivemq.com:8884/mqtt", "wss://broker.emqx.io:8084
 const TOPIC_ROOT = "gafados-es/v2/";
 let ME = store.get("gafados-pid");
 if (!ME) { ME = "p" + Math.random().toString(36).slice(2, 12); store.set("gafados-pid", ME); }
-let client = null, clientPromise = null;
+let client = null, clientPromise = null, preferBroker = null;
+const APP_VERSION = "3";
+const brokerLabel = () => client ? (client.brokerUrl.includes("hivemq") ? "HiveMQ" : client.brokerUrl.includes("emqx") ? "EMQX" : "local") : "sin conexión";
 let HS = null;           // estado completo de la partida (solo en el móvil del anfitrión)
 let O = null;            // lo que pinta la pantalla: {code, game, players, answers, ...}
 let wakeLock = null, joinTimer = null;
@@ -303,8 +305,7 @@ function getClient() {
   if (client) return Promise.resolve(client);
   if (clientPromise) return clientPromise;
   clientPromise = (async () => {
-    const saved = store.get("gafados-broker");
-    const order = saved && BROKERS.includes(saved) ? [saved, ...BROKERS.filter(b => b !== saved)] : BROKERS;
+    const order = preferBroker && BROKERS.includes(preferBroker) ? [preferBroker, ...BROKERS.filter(b => b !== preferBroker)] : BROKERS;
     for (const url of order) {
       try {
         const c = await connectBroker(url);
@@ -406,7 +407,7 @@ async function resumeHost() {
   S.onlineErr = ""; S.onlineBusy = true; render();
   try {
     leaveQuiet();
-    if (saved.broker) store.set("gafados-broker", saved.broker);
+    preferBroker = saved.broker || null;
     await getClient();
     await becomeHost({ code: saved.code, game: saved.game, players: saved.players, answers: saved.answers });
   } catch { S.onlineErr = netErr(); S.screen = "online"; }
@@ -431,7 +432,7 @@ async function joinGame(codeArg) {
     pub(topic(code, "up"), { t: "join", pid: ME, name });
     O.lastJoin = Date.now();
     clearTimeout(joinTimer);
-    joinTimer = setTimeout(() => tryOtherBroker(code), 6000);
+    joinTimer = setTimeout(() => tryOtherBroker(code), 8000);
   } catch { S.onlineErr = netErr(); S.screen = "online"; O = null; }
   S.onlineBusy = false; render();
 }
@@ -443,17 +444,18 @@ async function tryOtherBroker(code) {
     O.triedOther = true;
     try { client.end(true); } catch {}
     client = null; clientPromise = null;
-    store.set("gafados-broker", other);
+    preferBroker = other;
     try {
       await getClient();
       if (!O) return;
       await sub(topic(code, "state"));
       pub(topic(code, "up"), { t: "join", pid: ME, name: O.name });
-      joinTimer = setTimeout(() => tryOtherBroker(code), 6000);
+      joinTimer = setTimeout(() => tryOtherBroker(code), 8000);
       return;
     } catch {}
   }
-  if (O && !O.loaded) { O.fatal = `No hay ninguna partida con el código ${code}, o el móvil del anfitrión está desconectado.`; render(); }
+  preferBroker = null;
+  if (O && !O.loaded) { O.fatal = `No encuentro la partida ${code}. Comprueba el código y que el anfitrión tenga la página abierta, con el móvil desbloqueado y la misma versión del juego (versión ${APP_VERSION}).`; O.canRetry = true; render(); }
 }
 function onState(d) {
   if (!d) {
@@ -462,9 +464,8 @@ function onState(d) {
   }
   if (Date.now() - (d.savedAt || 0) > 6 * 3600e3 && !O.loaded) return;
   clearTimeout(joinTimer);
-  store.set("gafados-broker", client.brokerUrl);
   O.game = d.game; O.players = d.players || {}; O.answers = d.answers || {};
-  O.loaded = true; O.slow = false; O.err = "";
+  O.loaded = true; O.slow = false; O.err = ""; O.reconnecting = false;
   const g = O.game;
   if (g.status !== "lobby" && !(g.order || []).includes(ME)) { O.fatal = "Esa partida ya ha empezado. Pide que creen una nueva."; render(); return; }
   if (g.status === "lobby" && !O.players[ME] && Object.keys(O.players).length >= 10) { O.fatal = "La partida está llena (máximo 10 jugadores)."; render(); return; }
@@ -762,11 +763,13 @@ function vFinal() {
 function vOnlineGame() {
   if (!O) return vOnline();
   const g = O.game;
-  const top = `<div class="row between"><span class="codebadge" aria-label="Código de la partida">${esc(O.code)}</span><button class="btn ghost small" type="button" onclick="leaveGame()">${O.host ? "Terminar" : "Salir"}</button></div>`;
+  const top = `<div class="row between"><span class="codebadge" aria-label="Código de la partida">${esc(O.code)}</span><span class="hint">v${APP_VERSION} · ${brokerLabel()}</span><button class="btn ghost small" type="button" onclick="leaveGame()">${O.host ? "Terminar" : "Salir"}</button></div>`;
   const err = O.err ? `<p class="err" role="alert">${esc(O.err)}</p>` : "";
   if (O.fatal) {
     return `<section class="card">${top}<h2>No se ha podido entrar</h2><p class="muted">${esc(O.fatal)}</p>
-      <button class="btn big" type="button" onclick="leaveGame()">Volver</button></section>`;
+      ${O.canRetry ? `<button class="btn big sun" type="button" onclick="joinGame('${esc(O.code)}')">Reintentar</button>` : ""}
+      <button class="btn big ghost" type="button" onclick="leaveGame()">Volver</button>
+      <p class="hint center">Versión ${APP_VERSION}</p></section>`;
   }
   if (!g) {
     const msg = O.slow ? "No se puede conectar todavía. Comprueba el código y que el anfitrión tenga la página abierta." : "Conectando con la partida…";
