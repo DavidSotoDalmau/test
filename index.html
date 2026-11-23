@@ -159,7 +159,7 @@ details b { color: var(--ink); }
 <div class="wrap">
   <header class="brand">
     <h1 class="logo">¡Gafa<span>dos!</span></h1>
-    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v4</span></p>
+    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v5</span></p>
   </header>
   <main id="app"></main>
 </div>
@@ -219,10 +219,20 @@ function autoGroups(answers) {
   });
   return groups;
 }
-// Solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida
-// Solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida
-const ORIGINAL_POINTS = 1;
-function pts(g, gi, vetoed) { return g.length === 1 && !vetoed.includes(gi) ? ORIGINAL_POINTS : 0; }
+/* Puntuación: solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida.
+   Vale más cuanto antes se haya contestado: el primero gana (jugadores + 1) y cada siguiente,
+   un punto menos. El orden cuenta entre todos los que respondieron, gafados incluidos. */
+function answerRanks(answers) {
+  const idx = answers.map((_, i) => i).filter(i => norm(answers[i].text)).sort((a, b) => (answers[a].ord ?? a) - (answers[b].ord ?? b));
+  const r = answers.map(() => null);
+  idx.forEach((i, k) => r[i] = k);
+  return r;
+}
+function answerPoints(answers, groups, vetoed, nPlayers) {
+  const r = answerRanks(answers), out = answers.map(() => 0);
+  groups.forEach((g, gi) => { if (g.length === 1 && !vetoed.includes(gi)) out[g[0]] = Math.max(1, nPlayers + 1 - r[g[0]]); });
+  return out;
+}
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
 
 /* ================= Cuenta atrás ================= */
@@ -289,11 +299,12 @@ function nextRound() {
 }
 function startTurn() {
   S.deadline = S.timeLimit ? Date.now() + S.timeLimit * 1000 : 0;
+  S.turnStart = Date.now();
   S.screen = "write"; render();
 }
 function submitAnswer(text) {
   S.deadline = 0;
-  S.answers.push({ player: S.turn, text: text.trim() });
+  S.answers.push({ player: S.turn, text: text.trim(), ord: Date.now() - (S.turnStart || Date.now()) }); // en un solo móvil cuenta lo que tarda cada uno
   S.turn++;
   if (S.turn >= S.players.length) { S.groups = autoGroups(S.answers); S.screen = "reveal"; }
   else S.screen = "handoff";
@@ -315,10 +326,9 @@ const L = {
   confirm() {
     S.lastDelta = S.players.map(() => 0);
     S.lastJinx = S.players.map(() => false);
-    S.groups.forEach((g, gi) => {
-      const p = pts(g, gi, S.vetoed);
-      g.forEach(ai => { const pl = S.answers[ai].player; S.lastDelta[pl] += p; if (g.length > 1) S.lastJinx[pl] = true; });
-    });
+    const pa = answerPoints(S.answers, S.groups, S.vetoed, S.players.length);
+    S.answers.forEach((a, ai) => { S.lastDelta[a.player] += pa[ai]; });
+    S.groups.forEach(g => { if (g.length > 1) g.forEach(ai => { S.lastJinx[S.answers[ai].player] = true; }); });
     S.lastDelta.forEach((d, i) => S.scores[i] += d);
     S.screen = S.roundNo >= S.totalRounds ? "final" : "scores";
     render();
@@ -334,7 +344,7 @@ const TOPIC_ROOT = "gafados-es/v2/";
 let ME = store.get("gafados-pid");
 if (!ME) { ME = "p" + Math.random().toString(36).slice(2, 12); store.set("gafados-pid", ME); }
 let client = null, clientPromise = null, preferBroker = null;
-const APP_VERSION = "4";
+const APP_VERSION = "5";
 const brokerLabel = () => client ? (client.brokerUrl.includes("hivemq") ? "HiveMQ" : client.brokerUrl.includes("emqx") ? "EMQX" : "local") : "sin conexión";
 let HS = null;           // estado completo de la partida (solo en el móvil del anfitrión)
 let O = null;            // lo que pinta la pantalla: {code, game, players, answers, ...}
@@ -421,7 +431,8 @@ function onHostMsg(d) {
 function hostAnswer(pid, text) {
   const g = HS.game, t = String(text || "").trim().slice(0, 40);
   if (g.status !== "writing" || !g.order.includes(pid) || !t) return;
-  HS.answers[pid] = { round: g.roundNo, text: t };
+  if (HS.answers[pid]?.round === g.roundNo) return; // la primera respuesta es la que vale (y su orden)
+  HS.answers[pid] = { round: g.roundNo, text: t, at: Date.now() };
   syncAll();
 }
 function hostWrite(patch) { if (!HS) return; Object.assign(HS.game, patch); syncAll(); }
@@ -580,7 +591,7 @@ const H = {
   },
   reveal() {
     const g = O.game;
-    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text }));
+    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text, ord: HS.answers[p].at }));
     O.selected = [];
     hostWrite({ status: "reveal", revealAnswers: arr, groups: autoGroups(arr).map(m => ({ m })), vetoed: [] });
   },
@@ -596,10 +607,9 @@ const H = {
   confirm() {
     const g = O.game, groups = g.groups.map(x => x.m);
     const delta = Object.fromEntries(g.order.map(p => [p, 0])), jinx = {};
-    groups.forEach((m, gi) => {
-      const p = pts(m, gi, g.vetoed || []);
-      m.forEach(ai => { const pid = g.revealAnswers[ai].pid; delta[pid] += p; if (m.length > 1) jinx[pid] = true; });
-    });
+    const pa = answerPoints(g.revealAnswers, groups, g.vetoed || [], g.order.length);
+    g.revealAnswers.forEach((a, ai) => { delta[a.pid] = (delta[a.pid] || 0) + pa[ai]; });
+    groups.forEach(m => { if (m.length > 1) m.forEach(ai => { jinx[g.revealAnswers[ai].pid] = true; }); });
     const scores = { ...g.scores };
     Object.keys(delta).forEach(p => scores[p] = (scores[p] || 0) + delta[p]);
     O.selected = [];
@@ -653,7 +663,8 @@ function rulesHTML() {
   return `<details><summary>Cómo se juega</summary><ul>
       <li>Sale una categoría, por ejemplo <b>«Una fruta roja»</b>.</li>
       <li>Cada jugador escribe una respuesta en secreto.</li>
-      <li>Si tu respuesta es <b>única</b>, ganas <b>1 punto</b>.</li>
+      <li>Si tu respuesta es <b>única</b>, puntúas según lo rápido que contestes: el <b>primero</b> gana tantos puntos como <b>jugadores + 1</b>, y cada siguiente, <b>uno menos</b>. Con 4 jugadores: 5, 4, 3 y 2.</li>
+      <li>Online cuenta el orden en que llegan las respuestas. En un solo móvil, el tiempo que tarda cada uno desde que pulsa «Estoy listo».</li>
       <li>Si coincides con alguien, <b>estáis gafados</b> y nadie de ese grupo puntúa.</li>
       <li>La respuesta tiene que encajar en la categoría. Si alguien se pasa de listo, marcadla como <b>«No vale»</b>.</li>
       <li>Si dos respuestas significan lo mismo («coche» y «auto»), unidlas: también quedan gafadas.</li>
@@ -728,17 +739,18 @@ function vOnline() {
 }
 
 /* ---- Piezas compartidas ---- */
-function groupsHTML(answers, groups, vetoed, selected, editable, ns) {
+function groupsHTML(answers, groups, vetoed, selected, editable, ns, nPlayers) {
+  const pa = answerPoints(answers, groups, vetoed, nPlayers), rk = answerRanks(answers);
   return `<div class="groups">${groups.map((g, gi) => {
     const words = [...new Set(g.map(ai => answers[ai].text))];
-    const names = g.map(ai => answers[ai].name);
+    const names = g.map(ai => answers[ai].name + (rk[ai] !== null ? ` (${rk[ai] + 1}º)` : ""));
     const jinx = g.length > 1, sel = selected.includes(gi), vet = vetoed.includes(gi);
     const badge = jinx ? `<span class="pill jinx">¡Gafados!</span>` : vet ? `<span class="pill dim">No vale</span>` : `<span class="pill ok">Original</span>`;
     const inner = `<span class="word">${words.map(esc).join(" · ")}</span><span class="who-list">${names.map(esc).join(", ")} ${badge}</span>`;
     return `<div class="group ${jinx ? "jinx" : ""} ${sel ? "sel" : ""} ${vet ? "vetoed" : ""}">
       ${editable ? `<button type="button" class="pick" aria-pressed="${sel}" aria-label="Seleccionar ${esc(words.join(", "))} para unir" onclick="${ns}.pick(${gi})">${inner}</button>` : `<div class="pick">${inner}</div>`}
       <div class="side">
-        <span class="pts">+${pts(g, gi, vetoed)}</span>
+        <span class="pts">+${g.reduce((n, ai) => n + pa[ai], 0)}</span>
         ${editable && !jinx ? `<button type="button" class="veto" aria-pressed="${vet}" onclick="${ns}.veto(${gi})">No vale</button>` : ""}
       </div>
     </div>`;
@@ -789,7 +801,7 @@ function vWrite() {
     <span class="eyebrow">Turno de ${esc(S.players[S.turn])}</span>
     ${timerHTML(S.deadline, S.timeLimit, "local")}
     <p class="prompt">${esc(S.prompt)}</p>
-    <p class="hint">Piensa en algo que encaje pero que a nadie más se le ocurra.</p>
+    <p class="hint">Algo que encaje y que a nadie más se le ocurra. ¡Y rápido, que cuenta el orden!</p>
     <form class="stack" onsubmit="event.preventDefault();const v=document.getElementById('ans').value;if(v.trim())submitAnswer(v)">
       <input type="text" id="ans" autofocus autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="Tu respuesta secreta">
       <button class="btn big" type="submit">Guardar y pasar el móvil</button>
@@ -797,12 +809,12 @@ function vWrite() {
   </section>`;
 }
 function vReveal() {
-  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player] }));
+  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player], ord: a.ord }));
   return `<section class="card">
     ${header()}
     <p class="prompt">${esc(S.prompt)}</p>
     ${bannerHTML(S.groups)}
-    ${groupsHTML(answers, S.groups, S.vetoed, S.selected, true, "L")}
+    ${groupsHTML(answers, S.groups, S.vetoed, S.selected, true, "L", S.players.length)}
     ${noAnswerHTML(S.answers.filter(a => !norm(a.text)).map(a => S.players[a.player]))}
     ${editControls("L", S.selected.length, false)}
     <button class="btn big sun" type="button" onclick="L.confirm()">Apuntar puntos</button>
@@ -882,7 +894,7 @@ function vOnlineGame() {
       ${top}${roundLbl}
       ${timeUp ? "" : timerHTML(localDeadline, g.timeLimit, "online")}
       <p class="prompt">${esc(g.prompt)}</p>
-      ${mine === null && timeUp ? `<div class="timeup">¡Se acabó el tiempo! Esta ronda no puntúas.</div>` : mine === null ? `<p class="hint">Piensa en algo que encaje pero que a nadie más se le ocurra.</p>
+      ${mine === null && timeUp ? `<div class="timeup">¡Se acabó el tiempo! Esta ronda no puntúas.</div>` : mine === null ? `<p class="hint">Algo que encaje y que a nadie más se le ocurra. ¡Y rápido, que cuenta el orden!</p>
       <form class="stack" onsubmit="event.preventDefault();submitOnline(document.getElementById('ans').value)">
         <input type="text" id="ans" autofocus autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="Tu respuesta secreta">
         <button class="btn big" type="submit">Enviar respuesta</button>
@@ -897,14 +909,14 @@ function vOnlineGame() {
 
   const rows = g.order.map(p => ({ name: nameOf(p), s: g.scores?.[p] || 0, d: g.lastDelta?.[p] || 0, j: !!g.lastJinx?.[p], me: p === ME }));
   if (g.status === "reveal") {
-    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid) }));
+    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid), ord: a.ord }));
     const groups = g.groups.map(x => x.m);
     const silent = g.order.filter(p => !g.revealAnswers.some(a => a.pid === p));
     return `<section class="card">
       ${top}${roundLbl}
       <p class="prompt">${esc(g.prompt)}</p>
       ${bannerHTML(groups)}
-      ${groupsHTML(answers, groups, g.vetoed || [], isHost ? O.selected : [], isHost, "H")}
+      ${groupsHTML(answers, groups, g.vetoed || [], isHost ? O.selected : [], isHost, "H", g.order.length)}
       ${noAnswerHTML(silent.map(nameOf))}
       ${isHost ? `${editControls("H", O.selected.length, O.busy)}<button class="btn big sun" type="button" ${busy} onclick="H.confirm()">Apuntar puntos</button>` : `<p class="hint center">${esc(hostName)} puede unir respuestas iguales o anular las que no valgan.</p>`}
       ${err}
