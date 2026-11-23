@@ -10,8 +10,8 @@ Juego de fiesta en castellano. Sale una categoría («Una fruta roja») y cada j
 
 ## Modos
 
-- **Un solo móvil:** el móvil pasa de mano en mano. De 3 a 10 jugadores.
-- **Online, cada uno en su móvil:** una persona crea la partida y los demás entran con un código de 4 letras.
+- **Un solo móvil:** el móvil pasa de mano en mano. De 2 a 10 jugadores.
+- **Online, cada uno en su móvil:** una persona crea la partida y los demás entran con un código de 4 letras. También de 2 a 10 jugadores.
 
 ## Cómo funciona el modo online
 

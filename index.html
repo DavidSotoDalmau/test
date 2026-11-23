@@ -172,7 +172,7 @@ details b { color: var(--ink); }
 <div class="wrap">
   <header class="brand">
     <h1 class="logo">¡Gafa<span>dos!</span></h1>
-    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v6</span></p>
+    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v7</span></p>
   </header>
   <main id="app"></main>
 </div>
@@ -396,7 +396,7 @@ const TOPIC_ROOT = "gafados-es/v2/";
 let ME = store.get("gafados-pid");
 if (!ME) { ME = "p" + Math.random().toString(36).slice(2, 12); store.set("gafados-pid", ME); }
 let client = null, clientPromise = null, preferBroker = null;
-const APP_VERSION = "6";
+const APP_VERSION = "7";
 const brokerLabel = () => client ? (client.brokerUrl.includes("hivemq") ? "HiveMQ" : client.brokerUrl.includes("emqx") ? "EMQX" : "local") : "sin conexión";
 let HS = null;           // estado completo de la partida (solo en el móvil del anfitrión)
 let O = null;            // lo que pinta la pantalla: {code, game, players, answers, ...}
@@ -774,7 +774,7 @@ function timeSeg() {
     </div>`;
 }
 function vHome() {
-  const ok = S.players.length >= 3;
+  const ok = S.players.length >= 2, full = S.players.length >= 10;
   return `${onlineEntry()}
   <section class="card">
     <span class="eyebrow">Un solo móvil</span>
@@ -783,10 +783,10 @@ function vHome() {
     <div class="stack"><h3>Jugadores (${S.players.length})</h3>
       <div class="chips">${S.players.map((p, i) => `<span class="chip">${esc(p)}<button class="x" type="button" aria-label="Quitar a ${esc(p)}" onclick="S.players.splice(${i},1);render()">×</button></span>`).join("")}</div>
       <form class="addrow" onsubmit="event.preventDefault();addPlayer()">
-        <input type="text" id="newPlayer" placeholder="Nombre del jugador" maxlength="16" autocomplete="off">
-        <button class="btn ghost" type="submit">Añadir</button>
+        <input type="text" id="newPlayer" placeholder="Nombre del jugador" maxlength="16" autocomplete="off" ${full ? "disabled" : ""}>
+        <button class="btn ghost" type="submit" ${full ? "disabled" : ""}>Añadir</button>
       </form>
-      <p class="hint">${ok ? "De 3 a 10 jugadores. Cuantos más seáis, más fácil es gafarse." : "Hacen falta al menos 3 jugadores."}</p>
+      <p class="hint">${!ok ? "Hacen falta al menos 2 jugadores." : full ? "Ya sois 10, el máximo de jugadores." : "De 2 a 10 jugadores. Cuantos más seáis, más fácil es gafarse."}</p>
     </div>
     ${roundsSeg()}
     ${timeSeg()}
@@ -987,8 +987,8 @@ function vOnlineGame() {
       <div class="stack"><h3>Jugadores (${pids.length})</h3>
         <div class="chips">${pids.map(p => `<span class="chip solo">${esc(nameOf(p))}${p === g.host ? ` <span class="pill dim">anfitrión</span>` : ""}${p === ME ? ` <span class="you">tú</span>` : ""}</span>`).join("")}</div>
       </div>
-      <p class="hint">${g.totalRounds} rondas · ${g.timeLimit ? g.timeLimit + " segundos por respuesta" : "sin límite de tiempo"}.</p>
-      ${isHost ? `<button class="btn big sun" type="button" ${pids.length < 3 || O.busy ? "disabled" : ""} onclick="H.start()">${pids.length < 3 ? `Faltan ${3 - pids.length} jugadores` : "Empezar partida"}</button>` : waitHost}
+      <p class="hint">${pids.length >= 10 ? "Sala llena: 10 jugadores es el máximo. " : "De 2 a 10 jugadores. "}${g.totalRounds} rondas · ${g.timeLimit ? g.timeLimit + " segundos por respuesta" : "sin límite de tiempo"}.</p>
+      ${isHost ? `<button class="btn big sun" type="button" ${pids.length < 2 || O.busy ? "disabled" : ""} onclick="H.start()">${pids.length < 2 ? "Falta 1 jugador" : "Empezar partida"}</button>` : waitHost}
       ${err}
       <button class="btn ghost" type="button" onclick="leaveGame()">Salir de la sala</button>
     </section>`;
