@@ -9,11 +9,10 @@ Juego de fiesta en castellano. Sale una categoría («Una fruta roja») y cada j
 
 ## Cómo funciona el modo online
 
-No hay servidor propio. El móvil del anfitrión guarda la partida y los demás se conectan directamente a él por WebRTC, con [PeerJS](https://peerjs.com). El servidor público y gratuito de PeerJS solo se usa para que los móviles se encuentren a partir del código.
+No hay servidor propio. El móvil del anfitrión guarda la partida y la publica en un servidor público de mensajes MQTT por WebSocket seguro (HiveMQ, y EMQX si el primero no responde). Los demás móviles reciben el estado de la partida y envían sus respuestas por el mismo canal. No hay conexiones directas entre móviles, así que funciona también con datos móviles.
 
-- El anfitrión no debe cerrar la página ni bloquear el móvil durante la partida. Si recarga, puede pulsar «Volver a tu partida».
-- Las respuestas no llegan a los demás jugadores hasta que se revelan.
-- En algunas redes muy restrictivas (wifi corporativas o algunos datos móviles), WebRTC no consigue conectar sin un servidor TURN. Si pasa, probad todos con la misma wifi.
+- El anfitrión no debe cerrar la página durante la partida. Si recarga, puede pulsar «Volver a tu partida» y los demás siguen donde estaban.
+- Las respuestas no aparecen en la pantalla de nadie hasta que se revelan. Los servidores de mensajes son públicos, así que no lo uses para nada privado.
 
 ## Publicar en GitHub Pages
 
