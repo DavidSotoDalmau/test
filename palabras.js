@@ -1,5 +1,2196 @@
 // Respuestas de cada categoría por nivel de rareza: común (+1), infrecuente (+2), rara (+3) y original (+5)
 const PALABRAS = {
+ "Una fruta roja": {
+  "comun": [
+   "fresa",
+   "cereza",
+   "manzana",
+   "frambuesa",
+   "sandía",
+   "granada"
+  ],
+  "infrecuente": [
+   "fresón",
+   "grosella",
+   "ciruela",
+   "guinda",
+   "pitaya",
+   "madroño"
+  ],
+  "rara": [
+   "lichi",
+   "acerola",
+   "arándano rojo",
+   "tomate",
+   "pomelo rojo",
+   "naranja sanguina"
+  ],
+  "original": [
+   "escaramujo",
+   "goji",
+   "pimiento rojo",
+   "tamarillo",
+   "guindilla"
+  ]
+ },
+ "Algo que llevas a la playa": {
+  "comun": [
+   "toalla",
+   "sombrilla",
+   "crema solar",
+   "protector solar",
+   "bañador",
+   "bikini",
+   "gafas de sol",
+   "chanclas",
+   "gorra"
+  ],
+  "infrecuente": [
+   "nevera",
+   "silla",
+   "cubo y pala",
+   "pelota",
+   "libro",
+   "palas",
+   "colchoneta",
+   "flotador",
+   "bolsa de playa"
+  ],
+  "rara": [
+   "esterilla",
+   "sombrero",
+   "pareo",
+   "tortilla",
+   "bocadillo",
+   "gafas de bucear",
+   "aletas"
+  ],
+  "original": [
+   "paravientos",
+   "aftersun",
+   "baraja",
+   "cometa",
+   "detector de metales"
+  ]
+ },
+ "Un animal de granja": {
+  "comun": [
+   "vaca",
+   "cerdo",
+   "gallina",
+   "oveja",
+   "caballo",
+   "cabra",
+   "pollo",
+   "burro",
+   "gallo"
+  ],
+  "infrecuente": [
+   "pato",
+   "conejo",
+   "pavo",
+   "toro",
+   "cordero",
+   "asno",
+   "mula",
+   "ternero"
+  ],
+  "rara": [
+   "oca",
+   "ganso",
+   "codorniz",
+   "buey",
+   "yegua",
+   "lechón",
+   "cabrito"
+  ],
+  "original": [
+   "avestruz",
+   "caracol",
+   "abeja",
+   "trucha",
+   "alpaca",
+   "gusano de seda"
+  ]
+ },
+ "Un color del arcoíris": {
+  "comun": [
+   "rojo",
+   "amarillo",
+   "verde",
+   "azul",
+   "naranja"
+  ],
+  "infrecuente": [
+   "violeta",
+   "morado"
+  ],
+  "rara": [
+   "añil",
+   "anaranjado"
+  ],
+  "original": [
+   "índigo"
+  ]
+ },
+ "Una ciudad española": {
+  "comun": [
+   "madrid",
+   "barcelona",
+   "sevilla",
+   "valencia",
+   "bilbao",
+   "málaga",
+   "zaragoza",
+   "granada"
+  ],
+  "infrecuente": [
+   "salamanca",
+   "toledo",
+   "córdoba",
+   "alicante",
+   "san sebastián",
+   "santiago de compostela",
+   "murcia",
+   "valladolid",
+   "palma",
+   "cádiz"
+  ],
+  "rara": [
+   "cáceres",
+   "teruel",
+   "soria",
+   "lugo",
+   "huesca",
+   "zamora",
+   "ourense",
+   "ávila"
+  ],
+  "original": [
+   "ceuta",
+   "melilla",
+   "ponferrada",
+   "calatayud",
+   "plasencia"
+  ]
+ },
+ "Algo que hay en una cocina": {
+  "comun": [
+   "nevera",
+   "frigorífico",
+   "horno",
+   "microondas",
+   "sartén",
+   "fregadero",
+   "cuchillo",
+   "olla"
+  ],
+  "infrecuente": [
+   "lavavajillas",
+   "vitrocerámica",
+   "tostadora",
+   "cafetera",
+   "cazo",
+   "cuchara",
+   "tenedor",
+   "plato",
+   "vaso",
+   "batidora"
+  ],
+  "rara": [
+   "escurridor",
+   "rallador",
+   "delantal",
+   "extractor",
+   "campana",
+   "especiero",
+   "abrelatas",
+   "colador"
+  ],
+  "original": [
+   "imán de nevera",
+   "mortero",
+   "termómetro de cocina",
+   "salvamanteles"
+  ]
+ },
+ "Un deporte con pelota": {
+  "comun": [
+   "fútbol",
+   "baloncesto",
+   "tenis",
+   "balonmano",
+   "voleibol",
+   "vóley",
+   "pádel",
+   "golf",
+   "béisbol"
+  ],
+  "infrecuente": [
+   "rugby",
+   "waterpolo",
+   "ping-pong",
+   "tenis de mesa",
+   "fútbol sala",
+   "hockey",
+   "críquet",
+   "squash",
+   "frontón"
+  ],
+  "rara": [
+   "pelota vasca",
+   "fútbol americano",
+   "bolos",
+   "billar",
+   "polo",
+   "sóftbol",
+   "vóley playa"
+  ],
+  "original": [
+   "lacrosse",
+   "hurling",
+   "cesta punta",
+   "goalball",
+   "korfbal"
+  ]
+ },
+ "Algo que se come en Navidad": {
+  "comun": [
+   "turrón",
+   "polvorón",
+   "mazapán",
+   "cordero",
+   "marisco",
+   "langostinos",
+   "gambas",
+   "uvas",
+   "roscón de reyes",
+   "jamón"
+  ],
+  "infrecuente": [
+   "besugo",
+   "pavo",
+   "cochinillo",
+   "mantecado",
+   "peladillas",
+   "langosta"
+  ],
+  "rara": [
+   "escudella",
+   "canelones",
+   "lombarda",
+   "cardo",
+   "sopa de almendras",
+   "galets",
+   "consomé"
+  ],
+  "original": [
+   "angulas",
+   "capón",
+   "carbón dulce",
+   "piñonate"
+  ]
+ },
+ "Un superhéroe": {
+  "comun": [
+   "spiderman",
+   "hombre araña",
+   "superman",
+   "batman",
+   "hulk",
+   "iron man",
+   "capitán américa",
+   "thor",
+   "wonder woman"
+  ],
+  "infrecuente": [
+   "flash",
+   "lobezno",
+   "aquaman",
+   "viuda negra",
+   "pantera negra",
+   "deadpool",
+   "linterna verde",
+   "capitana marvel",
+   "doctor strange",
+   "ant-man"
+  ],
+  "rara": [
+   "daredevil",
+   "cíclope",
+   "tormenta",
+   "ojo de halcón",
+   "visión",
+   "bruja escarlata",
+   "estela plateada",
+   "robin"
+  ],
+  "original": [
+   "superlópez",
+   "superratón",
+   "chapulín colorado",
+   "mr. increíble",
+   "ladybug"
+  ]
+ },
+ "Algo frío": {
+  "comun": [
+   "hielo",
+   "helado",
+   "nieve",
+   "nevera",
+   "frigorífico",
+   "polo",
+   "granizo",
+   "congelador",
+   "invierno"
+  ],
+  "infrecuente": [
+   "cubito",
+   "granizado",
+   "agua fría",
+   "gazpacho",
+   "escarcha",
+   "iceberg",
+   "polo norte"
+  ],
+  "rara": [
+   "glaciar",
+   "témpano",
+   "antártida",
+   "ventisca",
+   "carámbano",
+   "sorbete"
+  ],
+  "original": [
+   "mármol",
+   "cadáver",
+   "nariz de perro",
+   "nitrógeno líquido",
+   "plutón"
+  ]
+ },
+ "Una profesión con uniforme": {
+  "comun": [
+   "policía",
+   "bombero",
+   "médico",
+   "enfermero",
+   "enfermera",
+   "militar",
+   "soldado",
+   "cocinero",
+   "chef",
+   "azafata"
+  ],
+  "infrecuente": [
+   "piloto",
+   "guardia civil",
+   "cartero",
+   "camarero",
+   "juez",
+   "guardia de seguridad",
+   "vigilante",
+   "mecánico",
+   "dependiente",
+   "cirujano"
+  ],
+  "rara": [
+   "barrendero",
+   "basurero",
+   "revisor",
+   "socorrista",
+   "árbitro",
+   "conserje",
+   "futbolista"
+  ],
+  "original": [
+   "astronauta",
+   "torero",
+   "jockey",
+   "apicultor",
+   "guardia real"
+  ]
+ },
+ "Un instrumento musical": {
+  "comun": [
+   "guitarra",
+   "piano",
+   "violín",
+   "batería",
+   "flauta",
+   "tambor",
+   "trompeta"
+  ],
+  "infrecuente": [
+   "saxofón",
+   "arpa",
+   "violonchelo",
+   "chelo",
+   "clarinete",
+   "bajo",
+   "castañuelas",
+   "acordeón",
+   "teclado",
+   "ukelele"
+  ],
+  "rara": [
+   "gaita",
+   "oboe",
+   "fagot",
+   "contrabajo",
+   "xilófono",
+   "pandereta",
+   "triángulo",
+   "trombón"
+  ],
+  "original": [
+   "zambomba",
+   "theremín",
+   "didgeridoo",
+   "serrucho",
+   "botella de anís",
+   "txalaparta"
+  ]
+ },
+ "Algo que hay en un baño": {
+  "comun": [
+   "váter",
+   "inodoro",
+   "ducha",
+   "bañera",
+   "lavabo",
+   "espejo",
+   "toalla",
+   "papel higiénico",
+   "cepillo de dientes",
+   "jabón"
+  ],
+  "infrecuente": [
+   "champú",
+   "pasta de dientes",
+   "dentífrico",
+   "bidé",
+   "alfombrilla",
+   "escobilla",
+   "secador",
+   "gel",
+   "peine",
+   "grifo"
+  ],
+  "rara": [
+   "báscula",
+   "cesto de la ropa",
+   "desatascador",
+   "bastoncillos",
+   "mampara",
+   "armario",
+   "colonia",
+   "maquinilla"
+  ],
+  "original": [
+   "patito de goma",
+   "revista",
+   "ambientador",
+   "moho",
+   "tapón"
+  ]
+ },
+ "Un postre": {
+  "comun": [
+   "flan",
+   "helado",
+   "arroz con leche",
+   "natillas",
+   "tarta",
+   "fruta",
+   "yogur",
+   "tarta de queso",
+   "tiramisú"
+  ],
+  "infrecuente": [
+   "crema catalana",
+   "brownie",
+   "mousse de chocolate",
+   "cuajada",
+   "macedonia",
+   "coulant",
+   "profiteroles",
+   "torrija",
+   "pudin"
+  ],
+  "rara": [
+   "leche frita",
+   "tocino de cielo",
+   "tarta de santiago",
+   "sorbete",
+   "panna cotta",
+   "filloas",
+   "tarta al whisky",
+   "frutas en almíbar"
+  ],
+  "original": [
+   "músico",
+   "queso con membrillo",
+   "mató con miel",
+   "intxaursaltsa"
+  ]
+ },
+ "Una bebida caliente": {
+  "comun": [
+   "café",
+   "té",
+   "chocolate",
+   "chocolate caliente",
+   "colacao",
+   "cola cao",
+   "leche",
+   "infusión",
+   "café con leche"
+  ],
+  "infrecuente": [
+   "manzanilla",
+   "poleo menta",
+   "tila",
+   "cortado",
+   "capuchino",
+   "caldo",
+   "leche con miel"
+  ],
+  "rara": [
+   "mate",
+   "carajillo",
+   "ponche",
+   "rooibos",
+   "consomé",
+   "chai",
+   "achicoria"
+  ],
+  "original": [
+   "queimada",
+   "grog",
+   "sake caliente",
+   "café de olla",
+   "vino caliente"
+  ]
+ },
+ "Un país de Europa": {
+  "comun": [
+   "españa",
+   "francia",
+   "italia",
+   "alemania",
+   "portugal",
+   "inglaterra",
+   "reino unido",
+   "grecia"
+  ],
+  "infrecuente": [
+   "suiza",
+   "bélgica",
+   "holanda",
+   "países bajos",
+   "suecia",
+   "noruega",
+   "austria",
+   "irlanda",
+   "polonia",
+   "rusia"
+  ],
+  "rara": [
+   "croacia",
+   "rumanía",
+   "hungría",
+   "dinamarca",
+   "finlandia",
+   "chequia",
+   "república checa",
+   "ucrania"
+  ],
+  "original": [
+   "andorra",
+   "mónaco",
+   "liechtenstein",
+   "san marino",
+   "vaticano",
+   "malta"
+  ]
+ },
+ "Algo que da miedo": {
+  "comun": [
+   "araña",
+   "fantasma",
+   "oscuridad",
+   "monstruo",
+   "serpiente",
+   "payaso",
+   "muerte",
+   "película de terror"
+  ],
+  "infrecuente": [
+   "tormenta",
+   "rayo",
+   "altura",
+   "vampiro",
+   "bruja",
+   "zombi",
+   "dentista",
+   "examen",
+   "cucaracha"
+  ],
+  "rara": [
+   "soledad",
+   "inyección",
+   "quirófano",
+   "cementerio",
+   "hacienda",
+   "mar abierto",
+   "terremoto"
+  ],
+  "original": [
+   "tenemos que hablar",
+   "muñeca antigua",
+   "factura de la luz",
+   "suegra",
+   "lunes"
+  ]
+ },
+ "Un animal que vuela": {
+  "comun": [
+   "pájaro",
+   "águila",
+   "paloma",
+   "murciélago",
+   "mosca",
+   "mariposa",
+   "abeja",
+   "gaviota",
+   "loro"
+  ],
+  "infrecuente": [
+   "halcón",
+   "búho",
+   "golondrina",
+   "mosquito",
+   "avispa",
+   "cuervo",
+   "gorrión",
+   "cigüeña",
+   "libélula",
+   "buitre"
+  ],
+  "rara": [
+   "colibrí",
+   "lechuza",
+   "mariquita",
+   "flamenco",
+   "pato",
+   "abejorro",
+   "polilla",
+   "albatros"
+  ],
+  "original": [
+   "pez volador",
+   "ardilla voladora",
+   "gallina",
+   "hormiga reina"
+  ]
+ },
+ "Algo amarillo": {
+  "comun": [
+   "sol",
+   "plátano",
+   "limón",
+   "pollito",
+   "canario",
+   "girasol",
+   "maíz",
+   "yema"
+  ],
+  "infrecuente": [
+   "queso",
+   "piña",
+   "mostaza",
+   "bob esponja",
+   "simpson",
+   "pikachu",
+   "mantequilla",
+   "oro",
+   "patito de goma"
+  ],
+  "rara": [
+   "pelota de tenis",
+   "post-it",
+   "villarreal",
+   "narciso",
+   "azufre",
+   "chubasquero",
+   "minion"
+  ],
+  "original": [
+   "ictericia",
+   "maillot del tour",
+   "páginas amarillas",
+   "tarjeta amarilla"
+  ]
+ },
+ "Un dulce típico de Semana Santa": {
+  "comun": [
+   "torrija",
+   "mona de pascua",
+   "mona",
+   "pestiño",
+   "buñuelo",
+   "huevo de pascua",
+   "huevo de chocolate"
+  ],
+  "infrecuente": [
+   "leche frita",
+   "rosquilla",
+   "rosco frito",
+   "flores de sartén",
+   "hojuela",
+   "bartolillo",
+   "panquemao"
+  ],
+  "rara": [
+   "piñonate",
+   "huesillo",
+   "crespell",
+   "rubiol",
+   "flaó"
+  ],
+  "original": [
+   "gañote",
+   "orelleta",
+   "sopaipa",
+   "hornazo"
+  ]
+ },
+ "Un plato típico español": {
+  "comun": [
+   "paella",
+   "tortilla de patatas",
+   "tortilla",
+   "gazpacho",
+   "cocido",
+   "cocido madrileño",
+   "jamón",
+   "croquetas",
+   "fabada",
+   "pulpo a la gallega"
+  ],
+  "infrecuente": [
+   "salmorejo",
+   "migas",
+   "calamares",
+   "patatas bravas",
+   "lentejas",
+   "callos",
+   "pisto",
+   "fideuá",
+   "cochinillo"
+  ],
+  "rara": [
+   "pimientos de padrón",
+   "gachas",
+   "caldo gallego",
+   "escalivada",
+   "marmitako",
+   "papas arrugadas",
+   "ajoblanco",
+   "rabo de toro"
+  ],
+  "original": [
+   "zarangollo",
+   "olla podrida",
+   "michirones",
+   "botillo",
+   "atascaburras"
+  ]
+ },
+ "Algo que se hace en verano": {
+  "comun": [
+   "ir a la playa",
+   "playa",
+   "nadar",
+   "bañarse",
+   "tomar el sol",
+   "ir a la piscina",
+   "piscina",
+   "vacaciones",
+   "viajar",
+   "siesta"
+  ],
+  "infrecuente": [
+   "barbacoa",
+   "acampar",
+   "ir de camping",
+   "broncearse",
+   "salir de fiesta",
+   "fiestas del pueblo",
+   "ir al pueblo",
+   "surf",
+   "comer helado",
+   "campamento"
+  ],
+  "rara": [
+   "snorkel",
+   "ver las perseidas",
+   "festival",
+   "cine de verano",
+   "kayak",
+   "recoger fruta",
+   "tomar horchata",
+   "buceo"
+  ],
+  "original": [
+   "deberes de verano",
+   "saltar hogueras",
+   "dormir con el ventilador",
+   "matar mosquitos",
+   "ver el tour de francia"
+  ]
+ },
+ "Un mueble del salón": {
+  "comun": [
+   "sofá",
+   "mesa",
+   "silla",
+   "sillón",
+   "estantería",
+   "mueble de la tele",
+   "mesita",
+   "butaca"
+  ],
+  "infrecuente": [
+   "librería",
+   "mesa de centro",
+   "aparador",
+   "vitrina",
+   "puf",
+   "chaise longue",
+   "mesa auxiliar"
+  ],
+  "rara": [
+   "chinero",
+   "mecedora",
+   "cómoda",
+   "baúl",
+   "revistero",
+   "diván",
+   "taburete",
+   "consola"
+  ],
+  "original": [
+   "mueble bar",
+   "piano",
+   "otomana",
+   "rinconera"
+  ]
+ },
+ "Una marca de coche": {
+  "comun": [
+   "seat",
+   "renault",
+   "ford",
+   "toyota",
+   "bmw",
+   "mercedes",
+   "audi",
+   "volkswagen",
+   "peugeot",
+   "citroën"
+  ],
+  "infrecuente": [
+   "opel",
+   "kia",
+   "hyundai",
+   "nissan",
+   "fiat",
+   "ferrari",
+   "tesla",
+   "dacia",
+   "skoda",
+   "volvo"
+  ],
+  "rara": [
+   "porsche",
+   "mazda",
+   "honda",
+   "lamborghini",
+   "jeep",
+   "mini",
+   "cupra",
+   "suzuki"
+  ],
+  "original": [
+   "pegaso",
+   "hispano-suiza",
+   "lada",
+   "trabant",
+   "bugatti",
+   "santana"
+  ]
+ },
+ "Algo que se rompe fácilmente": {
+  "comun": [
+   "cristal",
+   "vidrio",
+   "vaso",
+   "copa",
+   "huevo",
+   "plato",
+   "espejo",
+   "jarrón",
+   "móvil",
+   "pantalla"
+  ],
+  "infrecuente": [
+   "gafas",
+   "bombilla",
+   "galleta",
+   "uña",
+   "hueso",
+   "globo",
+   "lápiz",
+   "mina",
+   "taza",
+   "porcelana"
+  ],
+  "rara": [
+   "corazón",
+   "promesa",
+   "tiza",
+   "ramita",
+   "barquillo",
+   "pompa de jabón",
+   "cuerda de guitarra",
+   "silencio"
+  ],
+  "original": [
+   "récord",
+   "dieta",
+   "propósito de año nuevo",
+   "barrera del sonido",
+   "hucha"
+  ]
+ },
+ "Un insecto": {
+  "comun": [
+   "mosca",
+   "mosquito",
+   "hormiga",
+   "abeja",
+   "avispa",
+   "mariposa",
+   "cucaracha",
+   "mariquita",
+   "grillo",
+   "saltamontes"
+  ],
+  "infrecuente": [
+   "escarabajo",
+   "libélula",
+   "polilla",
+   "pulga",
+   "piojo",
+   "chinche",
+   "luciérnaga",
+   "abejorro",
+   "termita"
+  ],
+  "rara": [
+   "mantis",
+   "mantis religiosa",
+   "cigarra",
+   "chicharra",
+   "tijereta",
+   "langosta",
+   "pececillo de plata",
+   "efímera"
+  ],
+  "original": [
+   "zapatero",
+   "insecto palo",
+   "ciervo volante",
+   "pulgón",
+   "carcoma"
+  ]
+ },
+ "Una palabra que rime con «canción»": {
+  "comun": [
+   "corazón",
+   "ratón",
+   "camión",
+   "avión",
+   "balón",
+   "melón",
+   "limón",
+   "jamón",
+   "botón",
+   "pasión"
+  ],
+  "infrecuente": [
+   "ilusión",
+   "emoción",
+   "razón",
+   "león",
+   "montón",
+   "sillón",
+   "colchón",
+   "cajón",
+   "salchichón",
+   "televisión"
+  ],
+  "rara": [
+   "bribón",
+   "chicharrón",
+   "tiburón",
+   "dragón",
+   "perdón",
+   "oración",
+   "nación",
+   "estación"
+  ],
+  "original": [
+   "tirabuzón",
+   "desamortización",
+   "pimpón",
+   "glotón",
+   "chapuzón"
+  ]
+ },
+ "Un personaje de cuento": {
+  "comun": [
+   "caperucita roja",
+   "caperucita",
+   "cenicienta",
+   "blancanieves",
+   "lobo feroz",
+   "lobo",
+   "pinocho",
+   "bella durmiente",
+   "peter pan",
+   "sirenita"
+  ],
+  "infrecuente": [
+   "rapunzel",
+   "hansel",
+   "gretel",
+   "campanilla",
+   "capitán garfio",
+   "gato con botas",
+   "patito feo",
+   "ricitos de oro",
+   "pulgarcito",
+   "príncipe azul"
+  ],
+  "rara": [
+   "hada madrina",
+   "rumpelstiltskin",
+   "flautista de hamelín",
+   "soldadito de plomo",
+   "alicia",
+   "sombrerero loco",
+   "bestia",
+   "pepito grillo"
+  ],
+  "original": [
+   "ratoncito pérez",
+   "garbancito",
+   "juan sin miedo",
+   "ratita presumida",
+   "gigante egoísta"
+  ]
+ },
+ "Algo que hay en el cielo": {
+  "comun": [
+   "sol",
+   "luna",
+   "nube",
+   "estrella",
+   "avión",
+   "pájaro",
+   "arcoíris",
+   "rayo"
+  ],
+  "infrecuente": [
+   "cometa",
+   "helicóptero",
+   "globo",
+   "satélite",
+   "relámpago",
+   "gaviota",
+   "avioneta",
+   "zepelín"
+  ],
+  "rara": [
+   "dron",
+   "constelación",
+   "ovni",
+   "meteorito",
+   "aurora boreal",
+   "águila",
+   "paracaidista",
+   "vía láctea"
+  ],
+  "original": [
+   "calima",
+   "estela",
+   "ángel",
+   "cohete",
+   "parapente"
+  ]
+ },
+ "Una verdura verde": {
+  "comun": [
+   "lechuga",
+   "espinaca",
+   "brócoli",
+   "judía verde",
+   "pimiento verde",
+   "calabacín",
+   "pepino",
+   "guisante",
+   "acelga"
+  ],
+  "infrecuente": [
+   "alcachofa",
+   "puerro",
+   "espárrago",
+   "col",
+   "apio",
+   "haba",
+   "repollo",
+   "pimiento de padrón"
+  ],
+  "rara": [
+   "rúcula",
+   "canónigo",
+   "cardo",
+   "borraja",
+   "kale",
+   "coles de bruselas",
+   "grelos"
+  ],
+  "original": [
+   "okra",
+   "edamame",
+   "berro",
+   "ortiga",
+   "pak choi",
+   "tirabeque"
+  ]
+ },
+ "Algo que llevas en la cartera": {
+  "comun": [
+   "dinero",
+   "tarjeta",
+   "tarjeta de crédito",
+   "dni",
+   "billete",
+   "moneda",
+   "carné de conducir",
+   "carnet de conducir",
+   "foto",
+   "carné"
+  ],
+  "infrecuente": [
+   "tarjeta sanitaria",
+   "ticket",
+   "recibo",
+   "abono transporte",
+   "tarjeta de puntos",
+   "llave",
+   "carnet",
+   "calderilla"
+  ],
+  "rara": [
+   "preservativo",
+   "condón",
+   "entrada",
+   "sello",
+   "tarjeta de visita",
+   "décimo de lotería",
+   "pósit",
+   "pasaporte"
+  ],
+  "original": [
+   "trébol de cuatro hojas",
+   "estampita",
+   "diente de leche",
+   "carta de amor",
+   "mechón de pelo"
+  ]
+ },
+ "Un animal del mar": {
+  "comun": [
+   "tiburón",
+   "ballena",
+   "delfín",
+   "pulpo",
+   "pez",
+   "medusa",
+   "estrella de mar",
+   "cangrejo",
+   "foca",
+   "orca"
+  ],
+  "infrecuente": [
+   "calamar",
+   "gamba",
+   "langosta",
+   "sardina",
+   "atún",
+   "caballito de mar",
+   "tortuga",
+   "mejillón",
+   "morsa",
+   "sepia"
+  ],
+  "rara": [
+   "manta raya",
+   "pez espada",
+   "erizo de mar",
+   "anémona",
+   "percebe",
+   "mero",
+   "pez payaso",
+   "cachalote"
+  ],
+  "original": [
+   "narval",
+   "pez luna",
+   "dugongo",
+   "pepino de mar",
+   "vaquita marina"
+  ]
+ },
+ "Un juego de mesa": {
+  "comun": [
+   "parchís",
+   "monopoly",
+   "ajedrez",
+   "trivial",
+   "cluedo",
+   "oca",
+   "dominó",
+   "damas",
+   "scrabble"
+  ],
+  "infrecuente": [
+   "risk",
+   "catan",
+   "pictionary",
+   "jenga",
+   "tabú",
+   "uno",
+   "hundir la flota",
+   "quién es quién",
+   "damas chinas",
+   "party"
+  ],
+  "rara": [
+   "dixit",
+   "carcassonne",
+   "virus",
+   "dobble",
+   "backgammon",
+   "go",
+   "stratego",
+   "mahjong"
+  ],
+  "original": [
+   "aventureros al tren",
+   "pandemic",
+   "mansiones de la locura",
+   "gloomhaven",
+   "el hombre lobo de castronegro"
+  ]
+ },
+ "Una ciudad famosa del mundo": {
+  "comun": [
+   "parís",
+   "londres",
+   "nueva york",
+   "roma",
+   "madrid",
+   "barcelona",
+   "tokio",
+   "berlín",
+   "venecia"
+  ],
+  "infrecuente": [
+   "ámsterdam",
+   "moscú",
+   "los ángeles",
+   "pekín",
+   "sídney",
+   "río de janeiro",
+   "dubái",
+   "praga",
+   "lisboa",
+   "buenos aires"
+  ],
+  "rara": [
+   "estambul",
+   "el cairo",
+   "viena",
+   "budapest",
+   "san petersburgo",
+   "kioto",
+   "marrakech",
+   "nueva delhi"
+  ],
+  "original": [
+   "tombuctú",
+   "ulán bator",
+   "katmandú",
+   "samarcanda",
+   "reikiavik"
+  ]
+ },
+ "Algo que suena por la mañana": {
+  "comun": [
+   "despertador",
+   "alarma",
+   "móvil",
+   "teléfono",
+   "gallo",
+   "radio",
+   "pájaro",
+   "cafetera",
+   "timbre"
+  ],
+  "infrecuente": [
+   "camión de la basura",
+   "ducha",
+   "tostadora",
+   "microondas",
+   "tráfico",
+   "campana",
+   "bocina",
+   "claxon",
+   "noticias"
+  ],
+  "rara": [
+   "barrendero",
+   "perro",
+   "obras",
+   "persiana",
+   "taladro",
+   "tripa",
+   "cisterna",
+   "vecino"
+  ],
+  "original": [
+   "bostezo",
+   "ronquido",
+   "cucharilla en la taza",
+   "exprimidor",
+   "hervidor"
+  ]
+ },
+ "Un ingrediente de la paella": {
+  "comun": [
+   "arroz",
+   "azafrán",
+   "pollo",
+   "gamba",
+   "conejo",
+   "mejillón",
+   "aceite",
+   "judía verde",
+   "pimiento",
+   "marisco"
+  ],
+  "infrecuente": [
+   "garrofón",
+   "calamar",
+   "tomate",
+   "ajo",
+   "sal",
+   "agua",
+   "caldo",
+   "almeja",
+   "cigala",
+   "limón"
+  ],
+  "rara": [
+   "romero",
+   "pimentón",
+   "alcachofa",
+   "sepia",
+   "caracol",
+   "langostino",
+   "colorante",
+   "pato"
+  ],
+  "original": [
+   "socarrat",
+   "leña de naranjo",
+   "bajoqueta",
+   "ferraura"
+  ]
+ },
+ "Algo que se infla": {
+  "comun": [
+   "globo",
+   "rueda",
+   "colchoneta",
+   "balón",
+   "flotador",
+   "neumático",
+   "pelota",
+   "piscina hinchable"
+  ],
+  "infrecuente": [
+   "castillo hinchable",
+   "barca",
+   "colchón hinchable",
+   "airbag",
+   "mejilla",
+   "pulmón",
+   "chaleco salvavidas",
+   "manguito"
+  ],
+  "rara": [
+   "zepelín",
+   "ego",
+   "precio",
+   "tripa",
+   "pez globo",
+   "chicle",
+   "dirigible",
+   "almohada de viaje"
+  ],
+  "original": [
+   "currículum",
+   "factura",
+   "burbuja inmobiliaria",
+   "sapo",
+   "rana"
+  ]
+ },
+ "Una flor": {
+  "comun": [
+   "rosa",
+   "margarita",
+   "tulipán",
+   "girasol",
+   "clavel",
+   "amapola",
+   "orquídea",
+   "lirio"
+  ],
+  "infrecuente": [
+   "jazmín",
+   "geranio",
+   "violeta",
+   "lavanda",
+   "hortensia",
+   "azucena",
+   "gardenia",
+   "crisantemo",
+   "petunia",
+   "dalia"
+  ],
+  "rara": [
+   "buganvilla",
+   "magnolia",
+   "camelia",
+   "gladiolo",
+   "narciso",
+   "flor de pascua",
+   "nenúfar",
+   "azalea"
+  ],
+  "original": [
+   "alhelí",
+   "rafflesia",
+   "edelweiss",
+   "siempreviva",
+   "pensamiento",
+   "nomeolvides"
+  ]
+ },
+ "Algo redondo": {
+  "comun": [
+   "pelota",
+   "balón",
+   "rueda",
+   "sol",
+   "luna",
+   "moneda",
+   "plato",
+   "círculo",
+   "naranja",
+   "reloj"
+  ],
+  "infrecuente": [
+   "pizza",
+   "botón",
+   "anillo",
+   "cd",
+   "galleta",
+   "tapa",
+   "donut",
+   "ojo",
+   "bola",
+   "planeta"
+  ],
+  "rara": [
+   "canica",
+   "mandala",
+   "ojo de buey",
+   "pomo",
+   "tambor",
+   "frisbi",
+   "diana",
+   "rotonda"
+  ],
+  "original": [
+   "cero",
+   "letra o",
+   "punto final",
+   "aureola",
+   "ombligo"
+  ]
+ },
+ "Un árbol": {
+  "comun": [
+   "pino",
+   "roble",
+   "olivo",
+   "manzano",
+   "naranjo",
+   "abeto",
+   "encina",
+   "chopo",
+   "palmera",
+   "almendro"
+  ],
+  "infrecuente": [
+   "álamo",
+   "sauce",
+   "castaño",
+   "eucalipto",
+   "haya",
+   "ciprés",
+   "limonero",
+   "cerezo",
+   "higuera",
+   "plátano"
+  ],
+  "rara": [
+   "alcornoque",
+   "fresno",
+   "abedul",
+   "acacia",
+   "magnolio",
+   "olmo",
+   "nogal",
+   "tejo"
+  ],
+  "original": [
+   "baobab",
+   "secuoya",
+   "drago",
+   "ombú",
+   "ginkgo",
+   "sabina"
+  ]
+ },
+ "Un mes del año": {
+  "comun": [
+   "enero",
+   "agosto",
+   "diciembre",
+   "julio"
+  ],
+  "infrecuente": [
+   "marzo",
+   "abril",
+   "mayo",
+   "junio"
+  ],
+  "rara": [
+   "febrero",
+   "octubre",
+   "septiembre",
+   "setiembre"
+  ],
+  "original": [
+   "noviembre"
+  ]
+ },
+ "Algo que hay en un cumpleaños": {
+  "comun": [
+   "tarta",
+   "vela",
+   "regalo",
+   "globo",
+   "invitado",
+   "gorro",
+   "música",
+   "fiesta",
+   "amigo",
+   "piñata"
+  ],
+  "infrecuente": [
+   "confeti",
+   "matasuegras",
+   "tarjeta",
+   "refresco",
+   "chuches",
+   "gominola",
+   "patatas fritas",
+   "guirnalda",
+   "cumpleañero",
+   "cumpleaños feliz"
+  ],
+  "rara": [
+   "payaso",
+   "mago",
+   "castillo hinchable",
+   "photocall",
+   "serpentina",
+   "sándwich",
+   "canapé",
+   "tíos"
+  ],
+  "original": [
+   "deseo",
+   "tirón de orejas",
+   "cana",
+   "cuñado"
+  ]
+ },
+ "Un día de la semana": {
+  "comun": [
+   "lunes",
+   "viernes",
+   "sábado",
+   "domingo"
+  ],
+  "infrecuente": [
+   "martes",
+   "jueves"
+  ],
+  "rara": [
+   "miércoles"
+  ],
+  "original": []
+ },
+ "Un planeta": {
+  "comun": [
+   "tierra",
+   "marte",
+   "júpiter",
+   "saturno"
+  ],
+  "infrecuente": [
+   "venus",
+   "mercurio",
+   "neptuno"
+  ],
+  "rara": [
+   "urano",
+   "plutón"
+  ],
+  "original": []
+ },
+ "Algo con ruedas": {
+  "comun": [
+   "coche",
+   "auto",
+   "bicicleta",
+   "bici",
+   "moto",
+   "camión",
+   "autobús",
+   "patinete",
+   "tren",
+   "carro"
+  ],
+  "infrecuente": [
+   "monopatín",
+   "skate",
+   "patines",
+   "carrito de la compra",
+   "silla de ruedas",
+   "maleta",
+   "tractor",
+   "furgoneta",
+   "caravana"
+  ],
+  "rara": [
+   "avión",
+   "cochecito de bebé",
+   "carretilla",
+   "tranvía",
+   "quad",
+   "silla de oficina",
+   "triciclo",
+   "trolley"
+  ],
+  "original": [
+   "cortacésped",
+   "cama de hospital",
+   "carrito del avión",
+   "cubo de basura",
+   "noria"
+  ]
+ },
+ "Un queso": {
+  "comun": [
+   "manchego",
+   "roquefort",
+   "gouda",
+   "mozzarella",
+   "parmesano",
+   "brie",
+   "cabrales",
+   "emmental",
+   "camembert",
+   "queso fresco"
+  ],
+  "infrecuente": [
+   "idiazábal",
+   "tetilla",
+   "queso de burgos",
+   "feta",
+   "cheddar",
+   "mahón",
+   "torta del casar",
+   "queso de cabra",
+   "gruyer",
+   "philadelphia"
+  ],
+  "rara": [
+   "mascarpone",
+   "ricotta",
+   "gorgonzola",
+   "roncal",
+   "san simón",
+   "majorero",
+   "edam",
+   "halloumi"
+  ],
+  "original": [
+   "afuega'l pitu",
+   "casín",
+   "flor de guía",
+   "payoyo",
+   "gamonéu"
+  ]
+ },
+ "Un sabor de helado": {
+  "comun": [
+   "chocolate",
+   "vainilla",
+   "fresa",
+   "nata",
+   "limón",
+   "stracciatella",
+   "turrón",
+   "galleta"
+  ],
+  "infrecuente": [
+   "pistacho",
+   "café",
+   "mango",
+   "menta",
+   "dulce de leche",
+   "avellana",
+   "cookies",
+   "coco",
+   "tutti frutti",
+   "plátano"
+  ],
+  "rara": [
+   "yogur",
+   "leche merengada",
+   "horchata",
+   "frambuesa",
+   "caramelo salado",
+   "chicle",
+   "kinder",
+   "after eight"
+  ],
+  "original": [
+   "aceite de oliva",
+   "torrija",
+   "té matcha",
+   "sésamo negro",
+   "roscón de reyes"
+  ]
+ },
+ "Un río de España": {
+  "comun": [
+   "ebro",
+   "tajo",
+   "guadalquivir",
+   "duero",
+   "miño",
+   "guadiana"
+  ],
+  "infrecuente": [
+   "júcar",
+   "segura",
+   "manzanares",
+   "turia",
+   "genil",
+   "sil",
+   "pisuerga",
+   "nervión"
+  ],
+  "rara": [
+   "tormes",
+   "ter",
+   "llobregat",
+   "guadalete",
+   "jarama",
+   "esla",
+   "bidasoa",
+   "tinto"
+  ],
+  "original": [
+   "órbigo",
+   "cinca",
+   "alberche",
+   "eresma",
+   "ulla"
+  ]
+ },
+ "Algo que se lleva en la cabeza": {
+  "comun": [
+   "gorra",
+   "sombrero",
+   "gorro",
+   "casco",
+   "gafas",
+   "gafas de sol",
+   "pelo",
+   "diadema",
+   "pañuelo"
+  ],
+  "infrecuente": [
+   "boina",
+   "corona",
+   "peluca",
+   "cinta",
+   "pinza",
+   "coletero",
+   "turbante",
+   "capucha",
+   "horquilla",
+   "auriculares"
+  ],
+  "rara": [
+   "tiara",
+   "velo",
+   "mantilla",
+   "peineta",
+   "visera",
+   "pasamontañas",
+   "kipá",
+   "birrete"
+  ],
+  "original": [
+   "piojo",
+   "chichón",
+   "cuernos",
+   "cántaro",
+   "chistera"
+  ]
+ },
+ "Una prenda de invierno": {
+  "comun": [
+   "abrigo",
+   "bufanda",
+   "guantes",
+   "gorro",
+   "jersey",
+   "chaqueta",
+   "plumas",
+   "plumífero",
+   "botas",
+   "chaquetón"
+  ],
+  "infrecuente": [
+   "forro polar",
+   "sudadera",
+   "cazadora",
+   "gabardina",
+   "orejeras",
+   "parka",
+   "manoplas",
+   "chal",
+   "leotardos",
+   "rebeca"
+  ],
+  "rara": [
+   "poncho",
+   "trenca",
+   "pasamontañas",
+   "camiseta térmica",
+   "calzoncillos largos",
+   "chaleco",
+   "capa",
+   "mitones"
+  ],
+  "original": [
+   "batamanta",
+   "bata de guatiné",
+   "braga de cuello",
+   "pelliza",
+   "zamarra"
+  ]
+ },
+ "Algo que hace ruido": {
+  "comun": [
+   "tambor",
+   "coche",
+   "moto",
+   "perro",
+   "despertador",
+   "trueno",
+   "sirena",
+   "bocina",
+   "claxon",
+   "petardo"
+  ],
+  "infrecuente": [
+   "taladro",
+   "aspiradora",
+   "avión",
+   "tren",
+   "batería",
+   "trompeta",
+   "timbre",
+   "lavadora",
+   "vecino",
+   "campana"
+  ],
+  "rara": [
+   "grillo",
+   "cigarra",
+   "sonajero",
+   "olla exprés",
+   "motosierra",
+   "castañuelas",
+   "cisterna",
+   "persiana"
+  ],
+  "original": [
+   "bolsa de patatas",
+   "nudillos",
+   "gotera",
+   "papel de burbujas",
+   "tripa"
+  ]
+ },
+ "Una tapa de bar": {
+  "comun": [
+   "patatas bravas",
+   "bravas",
+   "croquetas",
+   "tortilla",
+   "tortilla de patatas",
+   "aceitunas",
+   "jamón",
+   "calamares",
+   "ensaladilla",
+   "boquerones"
+  ],
+  "infrecuente": [
+   "chopitos",
+   "pulpo a la gallega",
+   "oreja",
+   "callos",
+   "alitas",
+   "champiñones",
+   "morcilla",
+   "chorizo",
+   "pimientos de padrón",
+   "gambas al ajillo"
+  ],
+  "rara": [
+   "caracoles",
+   "rabas",
+   "torreznos",
+   "salmorejo",
+   "flamenquín",
+   "montadito",
+   "mejillones tigre",
+   "gilda"
+  ],
+  "original": [
+   "zarajos",
+   "criadillas",
+   "cojonudo",
+   "matrimonio",
+   "papas arrugadas"
+  ]
+ },
+ "Un número del 1 al 10": {
+  "comun": [
+   "siete",
+   "7",
+   "tres",
+   "3",
+   "uno",
+   "1",
+   "diez",
+   "10"
+  ],
+  "infrecuente": [
+   "cinco",
+   "5",
+   "dos",
+   "2",
+   "cuatro",
+   "4",
+   "ocho",
+   "8"
+  ],
+  "rara": [
+   "seis",
+   "6",
+   "nueve",
+   "9"
+  ],
+  "original": []
+ },
+ "Algo que se hace en la cama": {
+  "comun": [
+   "dormir",
+   "leer",
+   "soñar",
+   "descansar",
+   "roncar",
+   "ver la tele",
+   "mirar el móvil",
+   "hacer el amor",
+   "desayunar"
+  ],
+  "infrecuente": [
+   "pensar",
+   "llorar",
+   "ver series",
+   "abrazar",
+   "hacer la cama",
+   "estirarse",
+   "rezar",
+   "comer",
+   "dar vueltas"
+  ],
+  "rara": [
+   "saltar",
+   "guerra de almohadas",
+   "sudar",
+   "babear",
+   "hablar en sueños",
+   "trabajar",
+   "meditar",
+   "mojar la cama"
+  ],
+  "original": [
+   "hacer la cucharita",
+   "procrastinar",
+   "tirarse un pedo",
+   "hacer la croqueta",
+   "hacer un fuerte"
+  ]
+ },
+ "Un electrodoméstico": {
+  "comun": [
+   "lavadora",
+   "nevera",
+   "frigorífico",
+   "microondas",
+   "horno",
+   "lavavajillas",
+   "lavaplatos",
+   "secadora",
+   "aspiradora",
+   "frigo"
+  ],
+  "infrecuente": [
+   "batidora",
+   "cafetera",
+   "plancha",
+   "vitrocerámica",
+   "congelador",
+   "campana extractora",
+   "secador",
+   "robot de cocina",
+   "thermomix",
+   "tostadora"
+  ],
+  "rara": [
+   "freidora de aire",
+   "exprimidor",
+   "sandwichera",
+   "yogurtera",
+   "picadora",
+   "deshumidificador",
+   "roomba",
+   "licuadora"
+  ],
+  "original": [
+   "termo",
+   "panificadora",
+   "envasadora al vacío",
+   "crepera",
+   "heladera"
+  ]
+ },
+ "Un animal de la selva": {
+  "comun": [
+   "león",
+   "tigre",
+   "mono",
+   "elefante",
+   "serpiente",
+   "jirafa",
+   "gorila",
+   "cocodrilo",
+   "loro",
+   "leopardo"
+  ],
+  "infrecuente": [
+   "jaguar",
+   "tucán",
+   "chimpancé",
+   "pantera",
+   "hipopótamo",
+   "rinoceronte",
+   "cebra",
+   "guacamayo",
+   "orangután",
+   "anaconda"
+  ],
+  "rara": [
+   "perezoso",
+   "tapir",
+   "rana venenosa",
+   "puma",
+   "boa",
+   "camaleón",
+   "tarántula",
+   "oso hormiguero"
+  ],
+  "original": [
+   "okapi",
+   "coatí",
+   "capibara",
+   "ocelote",
+   "jaguarundi"
+  ]
+ },
  "Un dulce de feria": {
   "comun": [
    "algodón de azúcar",
@@ -26,16 +2217,16 @@ const PALABRAS = {
    "barquillo",
    "pestiños",
    "rosquillas",
-   "cucurucho de chuches",
+   "palmera de chocolate",
    "fresas con chocolate",
    "gominolas"
   ],
   "original": [
-   "turrón de jijona a la piedra",
-   "pinchos de nube",
-   "peladillas",
+   "piñonate",
    "coquitos",
-   "chupa chups gigante"
+   "peladillas",
+   "chupa chups gigante",
+   "pan de higo"
   ]
  },
  "Algo que tiene teclas": {
@@ -72,7 +2263,7 @@ const PALABRAS = {
    "xilófono",
    "clavicordio",
    "máquina expendedora",
-   "acordeonista",
+   "melódica",
    "celesta"
   ]
  },
@@ -122,18 +2313,18 @@ const PALABRAS = {
    "llave inglesa",
    "sierra",
    "taladro",
-   "clavo",
-   "tijeras"
+   "tijeras",
+   "metro"
   ],
   "infrecuente": [
    "serrucho",
-   "metro",
    "nivel",
    "lima",
    "llave allen",
    "tenazas",
    "pala",
-   "rastrillo"
+   "rastrillo",
+   "cúter"
   ],
   "rara": [
    "cincel",
@@ -222,10 +2413,10 @@ const PALABRAS = {
    "rocódromo"
   ],
   "original": [
-   "jubilados jugando a la petanca",
+   "petanca",
    "pipas",
-   "laberinto de setos",
-   "caca de perro",
+   "laberinto",
+   "caca",
    "pista de patinaje"
   ]
  },
@@ -238,7 +2429,8 @@ const PALABRAS = {
    "carnaval",
    "tomatina",
    "san juan",
-   "navidad"
+   "navidad",
+   "sanfermines"
   ],
   "infrecuente": [
    "moros y cristianos",
@@ -254,10 +2446,10 @@ const PALABRAS = {
    "batalla del vino",
    "patios de córdoba",
    "la patum",
-   "los sanfermines",
-   "el entierro de la sardina",
+   "entierro de la sardina",
    "romería",
-   "verbena"
+   "verbena",
+   "fiesta de la vendimia"
   ],
   "original": [
    "el colacho",
@@ -271,7 +2463,9 @@ const PALABRAS = {
   "comun": [
    "llaves",
    "móvil",
+   "teléfono",
    "mando",
+   "mando a distancia",
    "calcetín",
    "gafas",
    "paraguas",
@@ -284,48 +2478,50 @@ const PALABRAS = {
    "guantes",
    "goma",
    "pendiente",
-   "teléfono",
    "horquilla",
-   "tiempo"
+   "tiempo",
+   "tupper"
   ],
   "rara": [
    "cargador",
    "tapa del boli",
-   "mando a distancia",
    "pinza del pelo",
    "bufanda",
    "dni",
-   "tarjeta"
+   "tarjeta",
+   "coletero"
   ],
   "original": [
-   "la paciencia",
-   "la cabeza",
-   "el norte",
-   "la vergüenza",
-   "el hilo",
-   "la virginidad"
+   "paciencia",
+   "cabeza",
+   "norte",
+   "vergüenza",
+   "hilo",
+   "memoria"
   ]
  },
  "Un medio de transporte": {
   "comun": [
    "coche",
+   "auto",
    "avión",
    "tren",
    "autobús",
    "barco",
    "bicicleta",
+   "bici",
    "moto",
    "metro"
   ],
   "infrecuente": [
-   "bici",
    "taxi",
    "tranvía",
    "patinete",
    "helicóptero",
    "furgoneta",
    "camión",
-   "auto"
+   "autocar",
+   "bus"
   ],
   "rara": [
    "globo",
@@ -438,10 +2634,10 @@ const PALABRAS = {
    "mostaza",
    "tabasco",
    "pulga",
-   "picante",
    "piojo",
-   "picor",
-   "cayena"
+   "cayena",
+   "chinche",
+   "pimiento de padrón"
   ],
   "rara": [
    "medusa",
@@ -450,14 +2646,14 @@ const PALABRAS = {
    "barba",
    "garrapata",
    "rábano",
-   "picadura"
+   "sarna"
   ],
   "original": [
-   "la curiosidad",
-   "un anzuelo",
-   "pez que pica",
-   "la etiqueta de la camiseta",
-   "el sol de agosto"
+   "curiosidad",
+   "anzuelo",
+   "etiqueta de la camiseta",
+   "sol de agosto",
+   "varicela"
   ]
  },
  "Una isla española": {
@@ -479,7 +2675,7 @@ const PALABRAS = {
    "la graciosa",
    "canarias",
    "baleares",
-   "isla de arousa"
+   "arousa"
   ],
   "rara": [
    "islas cíes",
@@ -487,15 +2683,15 @@ const PALABRAS = {
    "tabarca",
    "alborán",
    "columbretes",
-   "isla de la toja",
+   "la toja",
    "isla perejil"
   ],
   "original": [
    "isla de los faisanes",
-   "isla de lobos",
+   "lobos",
    "sálvora",
-   "isla de santa clara",
-   "isla mínima"
+   "santa clara",
+   "dragonera"
   ]
  },
  "Un pájaro": {
@@ -541,8 +2737,10 @@ const PALABRAS = {
   "comun": [
    "médico",
    "enfermera",
+   "enfermero",
    "camilla",
    "jeringuilla",
+   "jeringa",
    "cama",
    "ambulancia",
    "paciente",
@@ -602,16 +2800,16 @@ const PALABRAS = {
    "salsa verde",
    "vinagreta",
    "holandesa",
-   "salmorejo",
+   "chimichurri",
    "pil pil"
   ],
   "original": [
-   "salsa de caracoles",
+   "salsa de almendras",
    "bilbaína",
    "mojo verde",
    "salsa española",
-   "salsa de la abuela",
-   "sriracha"
+   "sriracha",
+   "salsa de yogur"
   ]
  },
  "Un baile": {
@@ -648,9 +2846,9 @@ const PALABRAS = {
    "aserejé",
    "macarena",
    "conga",
-   "la yenka",
+   "yenka",
    "paquito el chocolatero",
-   "baile del gorila"
+   "los pajaritos"
   ]
  },
  "Un animal con rayas": {
@@ -669,26 +2867,26 @@ const PALABRAS = {
    "tejón",
    "lémur",
    "mofeta",
+   "zorrillo",
    "ardilla",
    "jabato",
-   "coral",
-   "rayado"
+   "gato atigrado"
   ],
   "rara": [
-   "chipmunk",
+   "ardilla listada",
    "pez león",
-   "zorrillo",
    "numbat",
-   "antílope",
+   "bongo",
    "serpiente coral",
-   "jabalí"
+   "hiena rayada",
+   "tigre blanco"
   ],
   "original": [
+   "quagga",
    "oruga",
    "escarabajo de la patata",
    "pez cebra",
-   "tilapia",
-   "calamar"
+   "sargo"
   ]
  },
  "Algo que se enciende": {
@@ -697,6 +2895,7 @@ const PALABRAS = {
    "vela",
    "fuego",
    "televisión",
+   "tele",
    "ordenador",
    "móvil",
    "mechero",
@@ -708,9 +2907,9 @@ const PALABRAS = {
    "chimenea",
    "horno",
    "radio",
-   "tele",
    "linterna",
-   "estufa"
+   "estufa",
+   "lámpara"
   ],
   "rara": [
    "hoguera",
@@ -722,11 +2921,11 @@ const PALABRAS = {
    "motor"
   ],
   "original": [
-   "los ánimos",
-   "una discusión",
-   "la mecha",
-   "la pasión",
-   "el árbol de navidad"
+   "ánimos",
+   "discusión",
+   "mecha",
+   "pasión",
+   "árbol de navidad"
   ]
  },
  "Una montaña o cordillera": {
@@ -748,7 +2947,8 @@ const PALABRAS = {
    "montblanc",
    "sistema central",
    "guadarrama",
-   "moncayo"
+   "moncayo",
+   "mont blanc"
   ],
   "rara": [
    "k2",
@@ -772,6 +2972,7 @@ const PALABRAS = {
   "comun": [
    "regalo",
    "bocadillo",
+   "bocata",
    "caramelo",
    "paquete",
    "burrito",
@@ -799,11 +3000,11 @@ const PALABRAS = {
    "roscón"
   ],
   "original": [
-   "cigarro",
    "tamal",
    "dolma",
    "rollito de primavera",
-   "cuerpo en papel film"
+   "palé",
+   "puro"
   ]
  },
  "Un objeto de oficina": {
@@ -849,6 +3050,7 @@ const PALABRAS = {
   "comun": [
    "darth vader",
    "joker",
+   "guasón",
    "voldemort",
    "drácula",
    "thanos",
@@ -861,10 +3063,10 @@ const PALABRAS = {
    "úrsula",
    "jafar",
    "hannibal lecter",
-   "el guasón",
    "freddy krueger",
    "sauron",
-   "grinch"
+   "grinch",
+   "pennywise"
   ],
   "rara": [
    "magneto",
@@ -876,11 +3078,11 @@ const PALABRAS = {
    "pingüino"
   ],
   "original": [
-   "el cascanueces",
+   "dolores umbridge",
    "ganondorf",
    "jack torrance",
    "pazuzu",
-   "rata de las alcantarillas",
+   "hans landa",
    "calígula"
   ]
  },
@@ -918,8 +3120,7 @@ const PALABRAS = {
    "mujer barbuda",
    "forzudo",
    "caravana",
-   "hombre bala humano",
-   "enano",
+   "pulgas amaestradas",
    "olor a serrín"
   ]
  },
@@ -932,16 +3133,17 @@ const PALABRAS = {
    "pistacho",
    "anacardo",
    "pipa",
+   "pipas",
    "castaña"
   ],
   "infrecuente": [
    "piñón",
    "nuez de macadamia",
-   "pipas",
    "pecana",
    "altramuz",
    "maní",
    "quicos",
+   "kikos",
    "garbanzo tostado"
   ],
   "rara": [
@@ -954,10 +3156,10 @@ const PALABRAS = {
    "higo seco"
   ],
   "original": [
-   "kikos",
    "orejón",
    "ciruela pasa",
-   "pipa de calabaza"
+   "pipa de calabaza",
+   "hayuco"
   ]
  },
  "Algo de cristal": {
@@ -988,7 +3190,7 @@ const PALABRAS = {
    "reloj de arena",
    "lente",
    "probeta",
-   "zapato de cenicienta"
+   "jarra"
   ],
   "original": [
    "zapatito de cristal",
@@ -1043,6 +3245,7 @@ const PALABRAS = {
    "camello",
    "cactus",
    "dunas",
+   "duna",
    "oasis",
    "sol",
    "escorpión",
@@ -1056,7 +3259,7 @@ const PALABRAS = {
    "espejismo",
    "tormenta de arena",
    "jaima",
-   "duna"
+   "tuareg"
   ],
   "rara": [
    "calavera",
