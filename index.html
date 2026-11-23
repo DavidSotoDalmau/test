@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Juego de fiesta en castellano: escribe respuestas originales; si coincides con alguien, quedáis gafados.">
+<meta name="theme-color" content="#2F4BFF">
+<title>¡Gafados!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Figtree:wght@400;600;800&display=swap">
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+/* Layout: una sola columna tipo "carta de juego" centrada; cada pantalla es una carta que se pasa de mano en mano */
+:root {
+  --bg: #E9EDFB;
+  --card: #FFFFFF;
+  --ink: #141A3A;
+  --muted: #5A6189;
+  --line: #CDD3EE;
+  --accent: #2F4BFF;
+  --accent-ink: #FFFFFF;
+  --sun: #FFC83D;
+  --sun-ink: #2A2100;
+  --good: #12A36B;
+  --jinx: #E0402E;
+  --jinx-soft: #FCE4E0;
+  --soft: #F3F5FD;
+  --font-display: "Bagel Fat One", "Arial Black", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1330; --card: #181F4A; --ink: #EEF0FF; --muted: #A3AAD6; --line: #2C3570;
+    --accent: #7187FF; --accent-ink: #0B1030; --sun: #FFC83D; --sun-ink: #2A2100;
+    --good: #3DD69A; --jinx: #FF6B57; --jinx-soft: #3A1E36; --soft: #20285A; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1330; --card: #181F4A; --ink: #EEF0FF; --muted: #A3AAD6; --line: #2C3570;
+  --accent: #7187FF; --accent-ink: #0B1030; --sun: #FFC83D; --sun-ink: #2A2100;
+  --good: #3DD69A; --jinx: #FF6B57; --jinx-soft: #3A1E36; --soft: #20285A; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.brand { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.logo { font-family: var(--font-display); font-weight: 400; font-size: clamp(2.2rem, 9vw, 3rem); line-height: 1; margin: 0; letter-spacing: -0.01em; }
+.logo span { display: inline-block; color: var(--jinx); transform: rotate(-4deg); }
+.tag { color: var(--muted); font-size: .9rem; }
+.card { background: var(--card); border: 2px solid var(--ink); border-radius: 18px; padding: 22px; box-shadow: 6px 6px 0 var(--ink); display: flex; flex-direction: column; gap: 16px; }
+h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; line-height: 1.15; margin: 0; text-wrap: balance; }
+h3 { margin: 0; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 800; }
+p { margin: 0; }
+.muted { color: var(--muted); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.stack { display: flex; flex-direction: column; gap: 10px; }
+button { font: inherit; cursor: pointer; }
+.btn { border: 2px solid var(--ink); background: var(--accent); color: var(--accent-ink); font-weight: 800; padding: 12px 18px; border-radius: 12px; font-size: 1rem; box-shadow: 3px 3px 0 var(--ink); transition: transform .08s, box-shadow .08s; }
+.btn:active { transform: translate(3px,3px); box-shadow: 0 0 0 var(--ink); }
+.btn.big { width: 100%; padding: 16px; font-size: 1.1rem; }
+.btn.ghost { background: var(--card); color: var(--ink); }
+.btn.sun { background: var(--sun); color: var(--sun-ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:focus-visible, input:focus-visible, .seg button:focus-visible, .pick:focus-visible, .veto:focus-visible, .x:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+input[type=text] { font: inherit; font-size: 1.05rem; width: 100%; min-width: 0; padding: 12px 14px; border: 2px solid var(--ink); border-radius: 12px; background: var(--soft); color: var(--ink); }
+.seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.seg button { border: 2px solid var(--line); background: var(--soft); color: var(--ink); border-radius: 12px; padding: 12px; font-weight: 800; }
+.seg button[aria-pressed="true"] { border-color: var(--ink); background: var(--sun); color: var(--sun-ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); border: 2px solid var(--line); border-radius: 999px; padding: 4px 6px 4px 12px; font-weight: 600; }
+.x { border: 0; background: transparent; color: var(--muted); width: 26px; height: 26px; border-radius: 50%; font-size: 1.1rem; line-height: 1; }
+.x:hover { background: var(--line); color: var(--ink); }
+.addrow { display: flex; gap: 8px; }
+.addrow .btn { flex: none; }
+.prompt { font-family: var(--font-display); font-size: clamp(1.7rem, 7vw, 2.3rem); line-height: 1.12; text-wrap: balance; }
+.eyebrow { font-weight: 800; font-size: .8rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-weight: 800; font-size: .78rem; letter-spacing: .04em; white-space: nowrap; }
+.pill.ok { background: var(--good); color: var(--accent-ink); }
+.pill.jinx { background: var(--jinx); color: #FFFFFF; }
+.pill.dim { background: var(--soft); color: var(--muted); border: 1px solid var(--line); }
+.handoff { text-align: center; align-items: center; padding-block: 36px; }
+.handoff .who { font-family: var(--font-display); font-size: clamp(2.2rem, 10vw, 3.2rem); line-height: 1; color: var(--accent); overflow-wrap: anywhere; }
+.progress { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.progress span { width: 10px; height: 10px; border-radius: 50%; background: var(--line); }
+.progress span.done { background: var(--accent); }
+.groups { display: flex; flex-direction: column; gap: 10px; }
+.group { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 6px 8px 6px 6px; border-radius: 14px; border: 2px solid var(--line); background: var(--soft); }
+.group.jinx { border-color: var(--jinx); background: var(--jinx-soft); }
+.group.sel { border-color: var(--ink); background: var(--sun); }
+.group.sel .who-list, .group.sel .word, .group.sel .pts { color: var(--sun-ink); }
+.pick { min-width: 0; text-align: left; border: 0; background: transparent; color: var(--ink); padding: 6px 8px; border-radius: 10px; display: flex; flex-direction: column; gap: 2px; }
+.group .word { font-weight: 800; font-size: 1.15rem; overflow-wrap: anywhere; }
+.group.vetoed .word { text-decoration: line-through; color: var(--muted); }
+.group .who-list { color: var(--muted); font-size: .9rem; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pts { font-family: var(--font-display); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.veto { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 8px; padding: 2px 8px; font-size: .78rem; font-weight: 800; }
+.veto[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+table.score { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.score td { padding: 10px 4px; border-bottom: 1px solid var(--line); }
+table.score td:first-child { width: 2em; color: var(--muted); font-weight: 800; }
+table.score td:last-child { text-align: right; font-family: var(--font-display); font-size: 1.25rem; }
+table.score .delta { color: var(--good); font-family: var(--font-body); font-weight: 800; font-size: .85rem; margin-left: 6px; }
+table.score .gaf { color: var(--jinx); font-family: var(--font-body); font-weight: 800; font-size: .8rem; margin-left: 6px; }
+table.score tr.lead td { color: var(--accent); }
+details { border-top: 2px dashed var(--line); padding-top: 12px; }
+summary { cursor: pointer; font-weight: 800; }
+details ul { margin: 10px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; color: var(--muted); }
+details b { color: var(--ink); }
+.hint { font-size: .85rem; color: var(--muted); }
+.banner { text-align: center; font-family: var(--font-display); font-size: 1.3rem; color: var(--jinx); }
+.between { justify-content: space-between; }
+.center { text-align: center; }
+.btn.small { padding: 6px 12px; font-size: .9rem; box-shadow: 2px 2px 0 var(--ink); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.split > .stack { min-width: 0; padding: 14px; border: 2px dashed var(--line); border-radius: 14px; }
+@media (max-width: 520px) { .split { grid-template-columns: 1fr; } }
+.err { color: var(--jinx); font-weight: 600; }
+.codeinput { text-transform: uppercase; letter-spacing: .3em; font-weight: 800; text-align: center; }
+.codebadge { font-family: var(--font-display); font-size: 1.1rem; letter-spacing: .12em; background: var(--ink); color: var(--card); padding: 2px 12px; border-radius: 8px; }
+.bigcode { font-family: var(--font-display); font-size: clamp(3rem, 16vw, 4.6rem); letter-spacing: .14em; text-align: center; line-height: 1; color: var(--accent); }
+.you { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); }
+.chip.solo { padding: 6px 12px; }
+.sent { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 12px; background: var(--soft); border: 2px solid var(--line); }
+.sent b { font-size: 1.2rem; overflow-wrap: anywhere; }
+.banner.good { color: var(--good); }
+.card.compact { gap: 12px; }
+@media (prefers-reduced-motion: no-preference) {
+  .card { animation: deal .28s ease-out; }
+  @keyframes deal { from { transform: translateY(8px) rotate(-.6deg); } to { transform: none; } }
+  .group.jinx { animation: shake .4s ease-in-out 1; }
+  @keyframes shake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+}
+@media (max-width: 420px) { .card { padding: 18px; box-shadow: 4px 4px 0 var(--ink); } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="brand">
+    <h1 class="logo">¡Gafa<span>dos!</span></h1>
+    <p class="tag">Piensa distinto o quedas gafado</p>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+const PROMPTS = [
+  "Una fruta roja","Algo que llevas a la playa","Un animal de granja","Un color del arcoíris","Una ciudad española",
+  "Algo que hay en una cocina","Un deporte con pelota","Algo que se come en Navidad","Un superhéroe","Algo frío",
+  "Una profesión con uniforme","Un instrumento musical","Algo que hay en un baño","Un postre","Una bebida caliente",
+  "Un país de Europa","Algo que da miedo","Un animal que vuela","Algo amarillo","Un dulce típico de Semana Santa",
+  "Un plato típico español","Algo que se hace en verano","Un mueble del salón","Una marca de coche","Algo que se rompe fácilmente",
+  "Un insecto","Una palabra que rime con «canción»","Un personaje de cuento","Algo que hay en el cielo","Una verdura verde",
+  "Algo que llevas en la cartera","Un animal del mar","Un juego de mesa","Una ciudad famosa del mundo","Algo que suena por la mañana",
+  "Un ingrediente de la paella","Algo que se infla","Una flor","Algo redondo","Un árbol",
+  "Un mes del año","Algo que hay en un cumpleaños","Un día de la semana","Un planeta","Algo con ruedas",
+  "Un queso","Un sabor de helado","Un río de España","Algo que se lleva en la cabeza","Una prenda de invierno",
+  "Algo que hace ruido","Una tapa de bar","Un número del 1 al 10","Algo que se hace en la cama","Un electrodoméstico",
+  "Un animal de la selva","Un dulce de feria","Algo que tiene teclas","Algo pegajoso","Una herramienta",
+  "Una asignatura del colegio","Algo que hay en un parque","Una fiesta popular","Algo que se pierde a menudo","Un medio de transporte",
+  "Una palabra que empiece por «ch»","Un tipo de pan","Algo que pica","Una isla española","Un pájaro",
+  "Algo que hay en un hospital","Una salsa","Un baile","Un animal con rayas","Algo que se enciende",
+  "Una montaña o cordillera","Algo que se envuelve","Un objeto de oficina","Un villano famoso","Algo que hay en un circo",
+  "Un fruto seco","Algo de cristal","Una emoción","Algo que hay en el desierto","Una estación del año",
+  "Algo que huele bien","Algo que huele mal","Un cubierto","Una carta de la baraja española","Algo que hay en un aeropuerto",
+  "Un sonido de animal","Una red social","Un embutido","Algo que se colecciona","Algo que hay en una mochila del cole",
+  "Un tipo de zapato","Un dinosaurio","Algo que se hace con huevos","Un monumento famoso","Algo que se usa cuando llueve",
+  "Algo que da suerte","Algo que trae mala suerte","Algo que hay en un jardín","Un cereal","Una película de Disney",
+  "Un cantante español","Una palabra en inglés que todos usamos","Algo que se pone en la pizza","Un animal doméstico","Algo que hay en una boda"
+];
+const ARTICLES = new Set(["el","la","los","las","un","una","unos","unas","lo"]);
+
+function norm(s) {
+  let t = (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  const parts = t.split(" ");
+  while (parts.length > 1 && ARTICLES.has(parts[0])) parts.shift();
+  return parts.join(" ");
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// Agrupa respuestas iguales (sin tildes, mayúsculas, artículos ni plurales sencillos)
+function autoGroups(answers) {
+  const keys = answers.map(a => norm(a.text));
+  const set = new Set(keys.filter(Boolean));
+  const canon = k => {
+    if (k.length > 4 && k.endsWith("es") && set.has(k.slice(0, -2))) return k.slice(0, -2);
+    if (k.length > 3 && k.endsWith("s") && !k.endsWith("ss") && set.has(k.slice(0, -1))) return k.slice(0, -1);
+    return k;
+  };
+  const map = new Map(); const groups = [];
+  answers.forEach((a, i) => {
+    const k = canon(keys[i]);
+    if (!map.has(k)) { map.set(k, groups.length); groups.push([]); }
+    groups[map.get(k)].push(i);
+  });
+  return groups;
+}
+// Solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida
+// Solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida
+const ORIGINAL_POINTS = 1;
+function pts(g, gi, vetoed) { return g.length === 1 && !vetoed.includes(gi) ? ORIGINAL_POINTS : 0; }
+const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+
+/* ================= Estado local (un solo móvil) ================= */
+let S;
+function freshState(prev) {
+  return {
+    screen: "home",
+    players: prev?.players || ["Ana", "Luis", "Marta", "Pablo"],
+    totalRounds: prev?.totalRounds || 8,
+    deck: [], roundNo: 0, prompt: "",
+    turn: 0, answers: [], groups: [], selected: [], vetoed: [],
+    scores: [], lastDelta: [], lastJinx: []
+  };
+}
+function startGame() {
+  S.scores = S.players.map(() => 0);
+  S.lastDelta = S.players.map(() => 0);
+  S.lastJinx = S.players.map(() => false);
+  S.deck = shuffle(PROMPTS);
+  S.roundNo = 0;
+  nextRound();
+}
+function nextRound() {
+  S.roundNo++;
+  S.answers = []; S.turn = 0; S.groups = []; S.selected = []; S.vetoed = [];
+  S.prompt = S.deck[(S.roundNo - 1) % S.deck.length];
+  S.screen = "handoff"; render();
+}
+function submitAnswer(text) {
+  S.answers.push({ player: S.turn, text: text.trim() });
+  S.turn++;
+  if (S.turn >= S.players.length) { S.groups = autoGroups(S.answers); S.screen = "reveal"; }
+  else S.screen = "handoff";
+  render();
+}
+function toggleIn(arr, v) { const i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); }
+function mergeGroups(groups, selected) {
+  const sel = selected.slice().sort((a, b) => a - b);
+  const merged = sel.flatMap(g => groups[g]);
+  const out = groups.filter((_, i) => !sel.includes(i));
+  out.splice(sel[0], 0, merged);
+  return out;
+}
+const L = {
+  pick(gi) { toggleIn(S.selected, gi); render(); },
+  veto(gi) { toggleIn(S.vetoed, gi); render(); },
+  merge() { if (S.selected.length < 2) return; S.groups = mergeGroups(S.groups, S.selected); S.selected = []; S.vetoed = []; render(); },
+  reset() { S.groups = autoGroups(S.answers); S.selected = []; S.vetoed = []; render(); },
+  confirm() {
+    S.lastDelta = S.players.map(() => 0);
+    S.lastJinx = S.players.map(() => false);
+    S.groups.forEach((g, gi) => {
+      const p = pts(g, gi, S.vetoed);
+      g.forEach(ai => { const pl = S.answers[ai].player; S.lastDelta[pl] += p; if (g.length > 1) S.lastJinx[pl] = true; });
+    });
+    S.lastDelta.forEach((d, i) => S.scores[i] += d);
+    S.screen = S.roundNo >= S.totalRounds ? "final" : "scores";
+    render();
+  }
+};
+
+/* ================= Modo online (cada uno en su móvil) =================
+   Sin servidor propio: el móvil del anfitrión guarda la partida y los demás
+   se conectan a él directamente (WebRTC con PeerJS). El servidor público de
+   PeerJS solo sirve para que los móviles se encuentren a partir del código. */
+const PEER_PREFIX = "gafados-es-v1-";
+const PEER_OPTS = { debug: 0, config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:global.stun.twilio.com:3478" }] } };
+let ME = store.get("gafados-pid");
+if (!ME) { ME = "p" + Math.random().toString(36).slice(2, 12); store.set("gafados-pid", ME); }
+let peer = null;          // mi conexión con el servidor de PeerJS
+let HS = null;            // estado completo de la partida (solo en el móvil del anfitrión)
+const conns = new Map();  // anfitrión: conexión -> id de jugador
+let hostConn = null, retryTimer = null, wakeLock = null;
+let O = null;             // lo que pinta la pantalla: {code, game, players, answers, ...}
+
+function makeCode() { const A = "ABCDEFGHJKLMNPQRSTUVWXYZ"; let s = ""; for (let i = 0; i < 4; i++) s += A[Math.floor(Math.random() * A.length)]; return s; }
+function nameOf(pid) { return O?.players[pid]?.name || "Alguien"; }
+function readName() { const n = (document.getElementById("myName")?.value || "").trim(); if (n) store.set("gafados-name", n); return n; }
+function netErr(e) {
+  const t = e?.type;
+  if (t === "peer-unavailable") return "No hay ninguna partida con ese código, o el móvil del anfitrión se ha desconectado.";
+  if (t === "browser-incompatible") return "Este navegador no permite jugar online. Prueba con Chrome, Safari o Firefox actualizados.";
+  if (t === "network" || t === "server-error" || t === "socket-error" || t === "socket-closed" || t === "timeout") return "No se ha podido conectar con el servidor de partidas. Revisa tu conexión e inténtalo de nuevo.";
+  return "Algo ha fallado con la conexión. Inténtalo de nuevo.";
+}
+function newPeer(id) {
+  return new Promise((resolve, reject) => {
+    const p = id ? new Peer(id, PEER_OPTS) : new Peer(PEER_OPTS);
+    let done = false;
+    const t = setTimeout(() => { if (!done) { done = true; try { p.destroy(); } catch {} reject({ type: "timeout" }); } }, 12000);
+    p.on("open", () => { if (!done) { done = true; clearTimeout(t); resolve(p); } });
+    p.on("error", e => { if (!done) { done = true; clearTimeout(t); try { p.destroy(); } catch {} reject(e); } });
+  });
+}
+async function keepAwake() { try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {} }
+
+/* ---------- Anfitrión ---------- */
+function saveHost() { if (HS) store.set("gafados-host", { ...HS, savedAt: Date.now() }); }
+function setupHost() {
+  peer.on("connection", conn => {
+    conn.on("data", d => onHostData(conn, d));
+    conn.on("close", () => { conns.delete(conn); });
+    conn.on("error", () => { conns.delete(conn); });
+  });
+  peer.on("disconnected", () => { setTimeout(() => { try { if (peer && peer.disconnected && !peer.destroyed) peer.reconnect(); } catch {} }, 1500); });
+  peer.on("error", e => { if (O && e?.type !== "peer-unavailable") { O.err = netErr(e); render(); } });
+}
+function viewFor(pid) {
+  // Nadie recibe el texto de las respuestas ajenas hasta que se revelan
+  const answers = Object.fromEntries(Object.entries(HS.answers).map(([p, a]) => [p, p === pid ? a : { round: a.round }]));
+  return { t: "state", code: HS.code, game: HS.game, players: HS.players, answers };
+}
+function syncAll() {
+  if (!HS) return;
+  saveHost();
+  for (const [conn, pid] of conns) { if (conn.open) { try { conn.send(viewFor(pid)); } catch {} } }
+  if (O) { O.game = HS.game; O.players = HS.players; O.answers = HS.answers; O.loaded = true; }
+  render();
+}
+function onHostData(conn, d) {
+  if (!HS || !d || typeof d !== "object") return;
+  const g = HS.game;
+  if (d.t === "join") {
+    const pid = String(d.pid || "").slice(0, 40), name = String(d.name || "").trim().slice(0, 16) || "Jugador";
+    if (!pid) return;
+    if (g.status !== "lobby" && !(g.order || []).includes(pid)) { conn.send({ t: "error", msg: "Esa partida ya ha empezado. Pide que creen una nueva." }); return; }
+    if (!HS.players[pid] && Object.keys(HS.players).length >= 10) { conn.send({ t: "error", msg: "La partida está llena (máximo 10 jugadores)." }); return; }
+    for (const [c, p] of conns) if (p === pid && c !== conn) { conns.delete(c); try { c.close(); } catch {} }
+    conns.set(conn, pid);
+    if (!HS.players[pid]) HS.players[pid] = { name, joinedAt: Date.now() };
+    else if (g.status === "lobby") HS.players[pid].name = name;
+    syncAll();
+  } else if (d.t === "answer") {
+    const pid = conns.get(conn);
+    if (pid) hostAnswer(pid, d.text);
+  } else if (d.t === "leave") {
+    const pid = conns.get(conn);
+    conns.delete(conn);
+    if (pid && g.status === "lobby") delete HS.players[pid];
+    syncAll();
+  }
+}
+function hostAnswer(pid, text) {
+  const g = HS.game, t = String(text || "").trim().slice(0, 40);
+  if (g.status !== "writing" || !g.order.includes(pid) || !t) return;
+  HS.answers[pid] = { round: g.roundNo, text: t };
+  syncAll();
+}
+function hostWrite(patch) { if (!HS) return; Object.assign(HS.game, patch); syncAll(); }
+function enterAsHost() {
+  clearTimeout(retryTimer);
+  O = { code: HS.code, game: HS.game, players: HS.players, answers: HS.answers, selected: [], err: "", loaded: true, host: true };
+  S.screen = "online-game";
+  keepAwake();
+  render();
+}
+async function claimHostId(code, tries) {
+  for (let i = 0; i < tries; i++) {
+    try { return await newPeer(PEER_PREFIX + code); }
+    catch (e) { if (e?.type !== "unavailable-id") throw e; await new Promise(r => setTimeout(r, 3000)); }
+  }
+  throw { type: "unavailable-id" };
+}
+async function createGame() {
+  const name = readName();
+  if (!name) { S.onlineErr = "Escribe tu nombre para crear la partida."; render(); return; }
+  S.onlineErr = ""; S.onlineBusy = true; render();
+  try {
+    endSession();
+    let code;
+    for (let i = 0; i < 5 && !peer; i++) {
+      code = makeCode();
+      try { peer = await newPeer(PEER_PREFIX + code); } catch (e) { if (e?.type !== "unavailable-id") throw e; }
+    }
+    if (!peer) throw { type: "server-error" };
+    HS = { code, game: { host: ME, status: "lobby", totalRounds: S.totalRounds, roundNo: 0, createdAt: Date.now() }, players: { [ME]: { name, joinedAt: Date.now() } }, answers: {} };
+    store.del("gafados-game");
+    setupHost(); saveHost(); enterAsHost();
+  } catch (e) { S.onlineErr = netErr(e); }
+  S.onlineBusy = false; render();
+}
+async function resumeHost() {
+  const saved = store.get("gafados-host");
+  if (!saved) return;
+  S.onlineErr = ""; S.onlineBusy = true; render();
+  try {
+    endSession();
+    peer = await claimHostId(saved.code, 8); // el servidor tarda unos segundos en liberar el código
+    HS = { code: saved.code, game: saved.game, players: saved.players, answers: saved.answers };
+    setupHost(); enterAsHost();
+  } catch (e) {
+    S.onlineErr = e?.type === "unavailable-id" ? "El código de la partida sigue ocupado. Espera medio minuto y vuelve a intentarlo." : netErr(e);
+    S.screen = "online";
+  }
+  S.onlineBusy = false; render();
+}
+
+/* ---------- Invitado ---------- */
+async function joinGame(codeArg) {
+  const name = codeArg ? (store.get("gafados-name") || "Jugador") : readName();
+  const code = (codeArg || document.getElementById("joinCode")?.value || "").trim().toUpperCase();
+  if (!name || code.length !== 4) { S.onlineErr = "Escribe tu nombre y el código de 4 letras."; render(); return; }
+  S.onlineErr = ""; S.onlineBusy = true; render();
+  try {
+    if (HS) endSession();
+    if (!peer || peer.destroyed) {
+      peer = await newPeer();
+      peer.on("error", e => {
+        if (!O || O.host) return;
+        if (e?.type === "peer-unavailable") {
+          if (O.loaded) scheduleRetry();
+          else { O.fatal = `No hay ninguna partida con el código ${O.code}, o el móvil del anfitrión está desconectado.`; render(); }
+        } else { O.err = netErr(e); render(); scheduleRetry(); }
+      });
+      peer.on("disconnected", () => { setTimeout(() => { try { if (peer && peer.disconnected && !peer.destroyed) peer.reconnect(); } catch {} }, 1500); });
+    }
+    O = { code, game: null, players: {}, answers: {}, selected: [], err: "", loaded: false, host: false, name };
+    store.set("gafados-game", code);
+    S.screen = "online-game";
+    keepAwake();
+    connectToHost();
+    setTimeout(() => { if (O && !O.loaded && !O.fatal) { O.slow = true; render(); } }, 12000);
+  } catch (e) { S.onlineErr = netErr(e); }
+  S.onlineBusy = false; render();
+}
+function scheduleRetry() {
+  clearTimeout(retryTimer);
+  if (!O || O.host || O.fatal) return;
+  O.reconnecting = true; render();
+  retryTimer = setTimeout(connectToHost, 2500);
+}
+function connectToHost() {
+  if (!O || O.host || !peer) return;
+  if (peer.disconnected && !peer.destroyed) { try { peer.reconnect(); } catch {} }
+  if (hostConn) { try { hostConn.close(); } catch {} }
+  const conn = peer.connect(PEER_PREFIX + O.code, { serialization: "json", reliable: true });
+  hostConn = conn;
+  conn.on("open", () => { conn.send({ t: "join", pid: ME, name: O?.name || "Jugador" }); });
+  conn.on("data", d => {
+    if (!O || hostConn !== conn) return;
+    if (d?.t === "state") { O.game = d.game; O.players = d.players; O.answers = d.answers; O.loaded = true; O.slow = false; O.reconnecting = false; O.err = ""; render(); }
+    else if (d?.t === "error") { O.fatal = String(d.msg || "No puedes entrar en esta partida."); render(); }
+  });
+  conn.on("close", () => { if (O && hostConn === conn) scheduleRetry(); });
+  conn.on("error", () => { if (O && hostConn === conn) scheduleRetry(); });
+}
+
+/* ---------- Comunes ---------- */
+function submitOnline(text) {
+  if (!O || !text.trim()) return;
+  if (O.host) hostAnswer(ME, text);
+  else if (hostConn?.open) { hostConn.send({ t: "answer", text: text.trim() }); O.pending = text.trim(); render(); }
+  else { O.err = "Sin conexión con el anfitrión. Reintentando…"; render(); scheduleRetry(); }
+}
+function endSession() {
+  clearTimeout(retryTimer);
+  if (hostConn) { try { hostConn.close(); } catch {} hostConn = null; }
+  conns.forEach((_, c) => { try { c.close(); } catch {} });
+  conns.clear();
+  if (peer) { try { peer.destroy(); } catch {} peer = null; }
+  HS = null;
+}
+function leaveGame() {
+  if (O && !O.host && hostConn?.open) { try { hostConn.send({ t: "leave" }); } catch {} }
+  if (O?.host) store.del("gafados-host"); else store.del("gafados-game");
+  const wasHost = O?.host;
+  O = null;
+  setTimeout(() => { if (wasHost) endSession(); else { clearTimeout(retryTimer); if (hostConn) { try { hostConn.close(); } catch {} hostConn = null; } } }, 200);
+  try { wakeLock?.release(); } catch {}
+  S.screen = "online"; render();
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden || !O) return;
+  if (peer && peer.disconnected && !peer.destroyed) { try { peer.reconnect(); } catch {} }
+  if (!O.host && !hostConn?.open) scheduleRetry();
+  keepAwake();
+});
+const H = {
+  start() {
+    const order = Object.keys(O.players).sort((a, b) => (O.players[a].joinedAt || 0) - (O.players[b].joinedAt || 0));
+    const deck = shuffle(PROMPTS.map((_, i) => i));
+    const zero = Object.fromEntries(order.map(p => [p, 0]));
+    HS.answers = {};
+    hostWrite({ status: "writing", roundNo: 1, order, deck, prompt: PROMPTS[deck[0]], scores: zero, lastDelta: zero, lastJinx: {}, revealAnswers: [], groups: [], vetoed: [] });
+  },
+  reveal() {
+    const g = O.game;
+    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text }));
+    O.selected = [];
+    hostWrite({ status: "reveal", revealAnswers: arr, groups: autoGroups(arr).map(m => ({ m })), vetoed: [] });
+  },
+  pick(gi) { toggleIn(O.selected, gi); render(); },
+  veto(gi) { const v = (O.game.vetoed || []).slice(); toggleIn(v, gi); hostWrite({ vetoed: v }); },
+  merge() {
+    if (O.selected.length < 2) return;
+    const gs = mergeGroups(O.game.groups.map(x => x.m), O.selected);
+    O.selected = [];
+    hostWrite({ groups: gs.map(m => ({ m })), vetoed: [] });
+  },
+  reset() { O.selected = []; hostWrite({ groups: autoGroups(O.game.revealAnswers).map(m => ({ m })), vetoed: [] }); },
+  confirm() {
+    const g = O.game, groups = g.groups.map(x => x.m);
+    const delta = Object.fromEntries(g.order.map(p => [p, 0])), jinx = {};
+    groups.forEach((m, gi) => {
+      const p = pts(m, gi, g.vetoed || []);
+      m.forEach(ai => { const pid = g.revealAnswers[ai].pid; delta[pid] += p; if (m.length > 1) jinx[pid] = true; });
+    });
+    const scores = { ...g.scores };
+    Object.keys(delta).forEach(p => scores[p] = (scores[p] || 0) + delta[p]);
+    O.selected = [];
+    hostWrite({ scores, lastDelta: delta, lastJinx: jinx, status: g.roundNo >= g.totalRounds ? "final" : "scores" });
+  },
+  next() { const g = O.game, r = g.roundNo + 1; hostWrite({ status: "writing", roundNo: r, prompt: PROMPTS[g.deck[(r - 1) % g.deck.length]] || PROMPTS[0], revealAnswers: [], groups: [], vetoed: [] }); },
+  rematch() {
+    const deck = shuffle(PROMPTS.map((_, i) => i));
+    const zero = Object.fromEntries(O.game.order.map(p => [p, 0]));
+    HS.answers = {};
+    hostWrite({ status: "writing", roundNo: 1, deck, prompt: PROMPTS[deck[0]], scores: zero, lastDelta: zero, lastJinx: {}, revealAnswers: [], groups: [], vetoed: [] });
+  }
+};
+
+
+/* ================= Pantallas ================= */
+const app = document.getElementById("app");
+function render() {
+  if (!S) return;
+  // Conserva lo que se está escribiendo cuando llegan cambios de otros jugadores
+  const keep = {}; app.querySelectorAll("input[id]").forEach(i => keep[i.id] = i.value);
+  const focusId = document.activeElement?.id;
+  let html;
+  if (S.screen === "online-game") html = vOnlineGame();
+  else html = ({ home: vHome, online: vOnline, handoff: vHandoff, write: vWrite, reveal: vReveal, scores: vScores, final: vFinal }[S.screen] || vHome)();
+  app.innerHTML = html;
+  Object.entries(keep).forEach(([id, v]) => { const el = document.getElementById(id); if (el && !el.value) el.value = v; });
+  const f = (focusId && document.getElementById(focusId)) || app.querySelector("[autofocus]");
+  if (f && f.tagName === "INPUT") { f.focus(); const n = f.value.length; try { f.setSelectionRange(n, n); } catch {} }
+  else if (f && !focusId) f.focus();
+}
+
+function onlineEntry() {
+  const saved = store.get("gafados-game");
+  let body;
+  const host = store.get("gafados-host");
+  const hostOk = host && Date.now() - (host.savedAt || 0) < 6 * 3600e3;
+  if (!window.Peer) body = `<p class="hint">No se ha podido cargar el modo online. Revisa tu conexión y recarga la página.</p>`;
+  else body = `<div class="row">
+      <button class="btn" type="button" onclick="S.onlineErr='';S.screen='online';render()">Jugar online</button>
+      ${hostOk ? `<button class="btn ghost" type="button" onclick="resumeHost()">Volver a tu partida ${esc(host.code)}</button>`
+        : saved ? `<button class="btn ghost" type="button" onclick="joinGame('${esc(saved)}')">Volver a la partida ${esc(saved)}</button>` : ""}
+    </div>`;
+  return `<section class="card compact">
+    <h2>¿Cada uno con su móvil?</h2>
+    <p class="muted">Crea una partida online y los demás se unen con un código de 4 letras desde su propio móvil.</p>
+    ${body}
+  </section>`;
+}
+function rulesHTML() {
+  return `<details><summary>Cómo se juega</summary><ul>
+      <li>Sale una categoría, por ejemplo <b>«Una fruta roja»</b>.</li>
+      <li>Cada jugador escribe una respuesta en secreto.</li>
+      <li>Si tu respuesta es <b>única</b>, ganas <b>1 punto</b>.</li>
+      <li>Si coincides con alguien, <b>estáis gafados</b> y nadie de ese grupo puntúa.</li>
+      <li>La respuesta tiene que encajar en la categoría. Si alguien se pasa de listo, marcadla como <b>«No vale»</b>.</li>
+      <li>Si dos respuestas significan lo mismo («coche» y «auto»), unidlas: también quedan gafadas.</li>
+      <li>Gana quien tenga más puntos al final.</li>
+    </ul></details>`;
+}
+function roundsSeg() {
+  return `<div class="stack"><h3>Rondas</h3>
+      <div class="seg">${[5, 8, 12].map(n => `<button type="button" id="r-${n}" aria-pressed="${S.totalRounds === n}" onclick="S.totalRounds=${n};render()">${n}</button>`).join("")}</div>
+    </div>`;
+}
+function vHome() {
+  const ok = S.players.length >= 3;
+  return `${onlineEntry()}
+  <section class="card">
+    <span class="eyebrow">Un solo móvil</span>
+    <h2>Si alguien escribe lo mismo que tú, quedáis gafados</h2>
+    <p class="muted">Sale una categoría y cada jugador escribe una respuesta en secreto, pasando el móvil. Al revelarlas, solo puntúan las respuestas que nadie más ha escrito.</p>
+    <div class="stack"><h3>Jugadores (${S.players.length})</h3>
+      <div class="chips">${S.players.map((p, i) => `<span class="chip">${esc(p)}<button class="x" type="button" aria-label="Quitar a ${esc(p)}" onclick="S.players.splice(${i},1);render()">×</button></span>`).join("")}</div>
+      <form class="addrow" onsubmit="event.preventDefault();addPlayer()">
+        <input type="text" id="newPlayer" placeholder="Nombre del jugador" maxlength="16" autocomplete="off">
+        <button class="btn ghost" type="submit">Añadir</button>
+      </form>
+      <p class="hint">${ok ? "De 3 a 10 jugadores. Cuantos más seáis, más fácil es gafarse." : "Hacen falta al menos 3 jugadores."}</p>
+    </div>
+    ${roundsSeg()}
+    <button class="btn big sun" type="button" ${ok ? "" : "disabled"} onclick="startGame()">Empezar partida</button>
+    ${rulesHTML()}
+  </section>`;
+}
+function addPlayer() {
+  const el = document.getElementById("newPlayer");
+  const v = el.value.trim();
+  el.value = "";
+  if (v && S.players.length < 10) S.players.push(v);
+  render();
+  document.getElementById("newPlayer")?.focus();
+}
+function vOnline() {
+  const busy = S.onlineBusy ? "disabled" : "";
+  return `<section class="card">
+    <span class="eyebrow">Online</span>
+    <h2>Cada uno juega desde su móvil</h2>
+    <div class="stack"><h3>Tu nombre</h3>
+      <input type="text" id="myName" maxlength="16" autocomplete="off" placeholder="Cómo te verán los demás" value="${esc(store.get("gafados-name") || "")}">
+    </div>
+    <div class="split">
+      <div class="stack">
+        <h3>Crear partida</h3>
+        ${roundsSeg()}
+        <button class="btn sun" type="button" ${busy} onclick="createGame()">Crear partida</button>
+      </div>
+      <div class="stack">
+        <h3>Unirse con código</h3>
+        <input type="text" id="joinCode" class="codeinput" maxlength="4" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD">
+        <button class="btn" type="button" ${busy} onclick="joinGame()">Unirse</button>
+      </div>
+    </div>
+    ${S.onlineErr ? `<p class="err" role="alert">${esc(S.onlineErr)}</p>` : ""}
+    <button class="btn ghost" type="button" onclick="S.screen='home';render()">Volver</button>
+    ${rulesHTML()}
+  </section>`;
+}
+
+/* ---- Piezas compartidas ---- */
+function groupsHTML(answers, groups, vetoed, selected, editable, ns) {
+  return `<div class="groups">${groups.map((g, gi) => {
+    const words = [...new Set(g.map(ai => answers[ai].text))];
+    const names = g.map(ai => answers[ai].name);
+    const jinx = g.length > 1, sel = selected.includes(gi), vet = vetoed.includes(gi);
+    const badge = jinx ? `<span class="pill jinx">¡Gafados!</span>` : vet ? `<span class="pill dim">No vale</span>` : `<span class="pill ok">Original</span>`;
+    const inner = `<span class="word">${words.map(esc).join(" · ")}</span><span class="who-list">${names.map(esc).join(", ")} ${badge}</span>`;
+    return `<div class="group ${jinx ? "jinx" : ""} ${sel ? "sel" : ""} ${vet ? "vetoed" : ""}">
+      ${editable ? `<button type="button" class="pick" aria-pressed="${sel}" aria-label="Seleccionar ${esc(words.join(", "))} para unir" onclick="${ns}.pick(${gi})">${inner}</button>` : `<div class="pick">${inner}</div>`}
+      <div class="side">
+        <span class="pts">+${pts(g, gi, vetoed)}</span>
+        ${editable && !jinx ? `<button type="button" class="veto" aria-pressed="${vet}" onclick="${ns}.veto(${gi})">No vale</button>` : ""}
+      </div>
+    </div>`;
+  }).join("")}</div>`;
+}
+function bannerHTML(groups) {
+  const n = groups.filter(g => g.length > 1).reduce((a, g) => a + g.length, 0);
+  return n ? `<p class="banner">${n} gafados esta ronda</p>` : `<p class="banner good">¡Nadie se ha gafado!</p>`;
+}
+function editControls(ns, selCount, disabled) {
+  return `<p class="hint">¿Dos respuestas son lo mismo? Tócalas y pulsa «Unir». ¿Una no encaja en la categoría? Pulsa «No vale».</p>
+    <div class="row">
+      <button class="btn ghost" type="button" ${selCount < 2 || disabled ? "disabled" : ""} onclick="${ns}.merge()">Unir (${selCount})</button>
+      <button class="btn ghost" type="button" ${disabled ? "disabled" : ""} onclick="${ns}.reset()">Deshacer cambios</button>
+    </div>`;
+}
+function scoreTableHTML(rows, withDelta) {
+  const order = rows.slice().sort((a, b) => b.s - a.s);
+  const top = order[0]?.s || 0;
+  return `<table class="score"><tbody>${order.map((r, k) => `<tr class="${r.s === top && top > 0 ? "lead" : ""}"><td>${k + 1}</td><td>${esc(r.name)}${r.me ? ` <span class="you">tú</span>` : ""}${withDelta ? (r.d ? `<span class="delta">+${r.d}</span>` : r.j ? `<span class="gaf">gafado</span>` : "") : ""}</td><td>${r.s}</td></tr>`).join("")}</tbody></table>`;
+}
+function winnerTitle(rows, total) {
+  const top = Math.max(...rows.map(r => r.s));
+  const w = rows.filter(r => r.s === top).map(r => r.name);
+  return { title: w.length > 1 ? "Empate entre " + w.map(esc).join(" y ") : "Gana " + esc(w[0]) + ", la mente más original", sub: `${top} ${top === 1 ? "punto" : "puntos"} en ${total} rondas.` };
+}
+
+/* ---- Pantallas del modo un solo móvil ---- */
+function header() { return `<span class="eyebrow">Ronda ${S.roundNo} de ${S.totalRounds}</span>`; }
+function vHandoff() {
+  const name = S.players[S.turn];
+  return `<section class="card handoff">
+    ${header()}
+    <p class="muted">${S.turn === 0 ? "Empieza" : "Pasa el móvil a"}</p>
+    <div class="who">${esc(name)}</div>
+    <p class="muted">Que nadie más mire la pantalla.</p>
+    <div class="progress" aria-label="${S.turn} de ${S.players.length} respuestas guardadas">${S.players.map((_, i) => `<span class="${i < S.turn ? "done" : ""}"></span>`).join("")}</div>
+    <button class="btn big" type="button" autofocus onclick="S.screen='write';render()">Soy ${esc(name)}, estoy listo</button>
+  </section>`;
+}
+function vWrite() {
+  return `<section class="card">
+    ${header()}
+    <span class="eyebrow">Turno de ${esc(S.players[S.turn])}</span>
+    <p class="prompt">${esc(S.prompt)}</p>
+    <p class="hint">Piensa en algo que encaje pero que a nadie más se le ocurra.</p>
+    <form class="stack" onsubmit="event.preventDefault();const v=document.getElementById('ans').value;if(v.trim())submitAnswer(v)">
+      <input type="text" id="ans" autofocus autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="Tu respuesta secreta">
+      <button class="btn big" type="submit">Guardar y pasar el móvil</button>
+    </form>
+  </section>`;
+}
+function vReveal() {
+  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player] }));
+  return `<section class="card">
+    ${header()}
+    <p class="prompt">${esc(S.prompt)}</p>
+    ${bannerHTML(S.groups)}
+    ${groupsHTML(answers, S.groups, S.vetoed, S.selected, true, "L")}
+    ${editControls("L", S.selected.length, false)}
+    <button class="btn big sun" type="button" onclick="L.confirm()">Apuntar puntos</button>
+  </section>`;
+}
+function localRows() { return S.players.map((p, i) => ({ name: p, s: S.scores[i], d: S.lastDelta[i], j: S.lastJinx[i] })); }
+function vScores() {
+  return `<section class="card">
+    ${header()}
+    <h2>Marcador</h2>
+    ${scoreTableHTML(localRows(), true)}
+    <button class="btn big" type="button" autofocus onclick="nextRound()">Siguiente ronda</button>
+  </section>`;
+}
+function vFinal() {
+  const w = winnerTitle(localRows(), S.totalRounds);
+  return `<section class="card">
+    <span class="eyebrow">Fin de la partida</span>
+    <h2>${w.title}</h2>
+    <p class="muted">${w.sub}</p>
+    ${scoreTableHTML(localRows(), false)}
+    <button class="btn big sun" type="button" onclick="startGame()">Revancha con los mismos jugadores</button>
+    <button class="btn big ghost" type="button" onclick="S.screen='home';render()">Cambiar jugadores</button>
+  </section>`;
+}
+
+/* ---- Pantallas del modo online ---- */
+function vOnlineGame() {
+  if (!O) return vOnline();
+  const g = O.game;
+  const top = `<div class="row between"><span class="codebadge" aria-label="Código de la partida">${esc(O.code)}</span><button class="btn ghost small" type="button" onclick="leaveGame()">${O.host ? "Terminar" : "Salir"}</button></div>`;
+  const err = O.err ? `<p class="err" role="alert">${esc(O.err)}</p>` : "";
+  if (O.fatal) {
+    return `<section class="card">${top}<h2>No se ha podido entrar</h2><p class="muted">${esc(O.fatal)}</p>
+      <button class="btn big" type="button" onclick="leaveGame()">Volver</button></section>`;
+  }
+  if (!g) {
+    const msg = O.slow ? "No se puede conectar todavía. Comprueba el código y que el anfitrión tenga la página abierta." : "Conectando con la partida…";
+    return `<section class="card">${top}<p class="muted">${msg}</p>${err}</section>`;
+  }
+  const isHost = g.host === ME;
+  const hostName = nameOf(g.host);
+  if (g.status !== "lobby" && !(g.order || []).includes(ME)) {
+    return `<section class="card">${top}<h2>Esta partida ya ha empezado</h2><p class="muted">Puedes mirar, pero no jugar. Pide a ${esc(hostName)} que cree otra al terminar.</p></section>`;
+  }
+  const waitHost = `<p class="hint center">Esperando a que ${esc(hostName)} continúe…</p>`;
+  const busy = O.busy ? "disabled" : "";
+  const roundLbl = `<span class="eyebrow">Ronda ${g.roundNo} de ${g.totalRounds}</span>`
+    + (O.reconnecting ? `<p class="err">Se ha perdido la conexión con ${esc(hostName)}. Reconectando…</p>` : "")
+    + (O.host ? `<p class="hint">Eres el anfitrión: no cierres esta página ni bloquees el móvil, o la partida se pausará para todos.</p>` : "");
+
+  if (g.status === "lobby") {
+    const pids = Object.keys(O.players).sort((a, b) => (O.players[a].joinedAt || 0) - (O.players[b].joinedAt || 0));
+    return `<section class="card">
+      <span class="eyebrow">Sala de espera</span>
+      <div class="bigcode">${esc(O.code)}</div>
+      <p class="muted center">Los demás abren esta misma página en su móvil, pulsan «Jugar online» y escriben este código.</p>
+      <div class="stack"><h3>Jugadores (${pids.length})</h3>
+        <div class="chips">${pids.map(p => `<span class="chip solo">${esc(nameOf(p))}${p === g.host ? ` <span class="pill dim">anfitrión</span>` : ""}${p === ME ? ` <span class="you">tú</span>` : ""}</span>`).join("")}</div>
+      </div>
+      <p class="hint">${g.totalRounds} rondas.</p>
+      ${isHost ? `<button class="btn big sun" type="button" ${pids.length < 3 || O.busy ? "disabled" : ""} onclick="H.start()">${pids.length < 3 ? `Faltan ${3 - pids.length} jugadores` : "Empezar partida"}</button>` : waitHost}
+      ${err}
+      <button class="btn ghost" type="button" onclick="leaveGame()">Salir de la sala</button>
+    </section>`;
+  }
+
+  if (g.status === "writing") {
+    const mine = O.answers[ME]?.round === g.roundNo ? O.answers[ME].text : null;
+    const done = g.order.filter(p => O.answers[p]?.round === g.roundNo);
+    const missing = g.order.filter(p => !done.includes(p));
+    return `<section class="card">
+      ${top}${roundLbl}
+      <p class="prompt">${esc(g.prompt)}</p>
+      ${mine === null ? `<p class="hint">Piensa en algo que encaje pero que a nadie más se le ocurra.</p>
+      <form class="stack" onsubmit="event.preventDefault();submitOnline(document.getElementById('ans').value)">
+        <input type="text" id="ans" autofocus autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="Tu respuesta secreta">
+        <button class="btn big" type="submit">Enviar respuesta</button>
+      </form>` : `<div class="sent"><span class="eyebrow">Tu respuesta</span><b>${esc(mine)}</b></div>`}
+      <div class="progress" aria-label="${done.length} de ${g.order.length} respuestas">${g.order.map(p => `<span class="${done.includes(p) ? "done" : ""}"></span>`).join("")}</div>
+      <p class="hint center">${missing.length ? "Faltan: " + missing.map(p => esc(nameOf(p))).join(", ") : "¡Ya han respondido todos!"}</p>
+      ${isHost ? `<button class="btn big sun" type="button" ${busy} ${missing.length ? "disabled" : ""} onclick="H.reveal()">Revelar respuestas</button>
+        ${missing.length && done.length >= 2 ? `<button class="btn ghost" type="button" ${busy} onclick="H.reveal()">Revelar sin esperar a ${missing.length === 1 ? esc(nameOf(missing[0])) : "los que faltan"}</button>` : ""}` : ""}
+      ${err}
+    </section>`;
+  }
+
+  const rows = g.order.map(p => ({ name: nameOf(p), s: g.scores?.[p] || 0, d: g.lastDelta?.[p] || 0, j: !!g.lastJinx?.[p], me: p === ME }));
+  if (g.status === "reveal") {
+    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid) }));
+    const groups = g.groups.map(x => x.m);
+    return `<section class="card">
+      ${top}${roundLbl}
+      <p class="prompt">${esc(g.prompt)}</p>
+      ${bannerHTML(groups)}
+      ${groupsHTML(answers, groups, g.vetoed || [], isHost ? O.selected : [], isHost, "H")}
+      ${isHost ? `${editControls("H", O.selected.length, O.busy)}<button class="btn big sun" type="button" ${busy} onclick="H.confirm()">Apuntar puntos</button>` : `<p class="hint center">${esc(hostName)} puede unir respuestas iguales o anular las que no valgan.</p>`}
+      ${err}
+    </section>`;
+  }
+  if (g.status === "scores") {
+    return `<section class="card">
+      ${top}${roundLbl}
+      <h2>Marcador</h2>
+      ${scoreTableHTML(rows, true)}
+      ${isHost ? `<button class="btn big" type="button" ${busy} onclick="H.next()">Siguiente ronda</button>` : waitHost}
+      ${err}
+    </section>`;
+  }
+  if (g.status === "final") {
+    const w = winnerTitle(rows, g.totalRounds);
+    return `<section class="card">
+      ${top}
+      <span class="eyebrow">Fin de la partida</span>
+      <h2>${w.title}</h2>
+      <p class="muted">${w.sub}</p>
+      ${scoreTableHTML(rows, false)}
+      ${isHost ? `<button class="btn big sun" type="button" ${busy} onclick="H.rematch()">Revancha con los mismos jugadores</button>` : waitHost}
+      <button class="btn big ghost" type="button" onclick="leaveGame()">Salir</button>
+      ${err}
+    </section>`;
+  }
+  return `<section class="card">${top}<p class="muted">Cargando…</p></section>`;
+}
+
+S = freshState();
+S.onlineErr = ""; S.onlineBusy = false;
+render();
+</script>
+</body>
+</html>
