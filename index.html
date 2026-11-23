@@ -143,6 +143,19 @@ details b { color: var(--ink); }
 .timer.hurry .tfill { background: var(--jinx); }
 .timeup { padding: 14px; border-radius: 12px; background: var(--jinx-soft); border: 2px solid var(--jinx); color: var(--ink); font-weight: 700; text-align: center; }
 .noans { font-size: .9rem; color: var(--muted); }
+.tier { display: inline-block; padding: 1px 8px; border-radius: 6px; font-weight: 800; font-size: .74rem; white-space: nowrap; border: 1.5px solid var(--ink); }
+.tier.t0 { background: var(--card); color: var(--muted); border-color: var(--line); }
+.tier.t1 { background: var(--soft); color: var(--accent); border-color: var(--accent); }
+.tier.t2 { background: var(--sun); color: var(--sun-ink); }
+.tier.t3 { background: var(--ink); color: var(--sun); }
+.tier.pending { background: transparent; color: var(--muted); border-style: dashed; border-color: var(--muted); }
+.vote-row { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; padding: 2px 6px 6px; }
+.vote { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.vbtn { border: 2px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 6px 2px; font-weight: 800; font-size: .78rem; display: flex; flex-direction: column; align-items: center; line-height: 1.2; min-width: 0; }
+.vbtn small { font-weight: 600; color: var(--muted); }
+.vbtn.on { border-color: var(--ink); background: var(--sun); color: var(--sun-ink); }
+.vbtn.on small { color: var(--sun-ink); }
+.vbtn:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
 @media (prefers-reduced-motion: no-preference) {
   .timer.hurry .tnum { animation: beat .5s ease-in-out infinite alternate; }
   @keyframes beat { to { transform: scale(1.18); } }
@@ -159,11 +172,12 @@ details b { color: var(--ink); }
 <div class="wrap">
   <header class="brand">
     <h1 class="logo">¡Gafa<span>dos!</span></h1>
-    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v5</span></p>
+    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v6</span></p>
   </header>
   <main id="app"></main>
 </div>
 
+<script src="palabras.js"></script>
 <script>
 const PROMPTS = [
   "Una fruta roja","Algo que llevas a la playa","Un animal de granja","Un color del arcoíris","Una ciudad española",
@@ -228,9 +242,42 @@ function answerRanks(answers) {
   idx.forEach((i, k) => r[i] = k);
   return r;
 }
-function answerPoints(answers, groups, vetoed, nPlayers) {
+/* Rareza: cada categoría tiene en palabras.js respuestas comunes, infrecuentes, raras y originales.
+   Una respuesta única suma además el extra de su nivel. Si no está en la base, la valoran
+   los demás jugadores: gana el nivel más votado y, si hay empate, el más bajo. */
+const TIERS = [{ key: "comun", n: "Común", b: 1 }, { key: "infrecuente", n: "Infrecuente", b: 2 }, { key: "rara", n: "Rara", b: 3 }, { key: "original", n: "Original", b: 5 }];
+const tierIndexCache = {};
+function tierOf(prompt, text) {
+  const db = typeof PALABRAS === "object" ? PALABRAS[prompt] : null;
+  const k = norm(text);
+  if (!db || !k) return null;
+  if (!tierIndexCache[prompt]) {
+    const m = new Map();
+    TIERS.forEach((t, i) => (db[t.key] || []).forEach(w => { const n = norm(w); if (n && !m.has(n)) m.set(n, i); }));
+    tierIndexCache[prompt] = m;
+  }
+  const m = tierIndexCache[prompt];
+  const cands = [k, k + "s", k + "es"];
+  if (k.endsWith("es")) cands.push(k.slice(0, -2));
+  if (k.endsWith("s")) cands.push(k.slice(0, -1));
+  for (const c of cands) if (m.has(c)) return m.get(c);
+  return null;
+}
+function mostVoted(v) {
+  const counts = [0, 0, 0, 0];
+  Object.values(v || {}).forEach(t => { if (counts[t] !== undefined) counts[t]++; });
+  const max = Math.max(...counts);
+  return max ? counts.indexOf(max) : null;
+}
+// Nivel final de cada respuesta: el de la base o el votado; null si aún no se sabe
+function finalTiers(answers, votes) {
+  return answers.map((a, i) => a.db != null ? a.db : mostVoted(votes?.[i]));
+}
+function answerPoints(answers, groups, vetoed, nPlayers, tiers) {
   const r = answerRanks(answers), out = answers.map(() => 0);
-  groups.forEach((g, gi) => { if (g.length === 1 && !vetoed.includes(gi)) out[g[0]] = Math.max(1, nPlayers + 1 - r[g[0]]); });
+  groups.forEach((g, gi) => {
+    if (g.length === 1 && !vetoed.includes(gi)) out[g[0]] = Math.max(1, nPlayers + 1 - r[g[0]]) + TIERS[tiers?.[g[0]] ?? 0].b;
+  });
   return out;
 }
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
@@ -306,7 +353,11 @@ function submitAnswer(text) {
   S.deadline = 0;
   S.answers.push({ player: S.turn, text: text.trim(), ord: Date.now() - (S.turnStart || Date.now()) }); // en un solo móvil cuenta lo que tarda cada uno
   S.turn++;
-  if (S.turn >= S.players.length) { S.groups = autoGroups(S.answers); S.screen = "reveal"; }
+  if (S.turn >= S.players.length) {
+    S.answers.forEach(a => { a.db = tierOf(S.prompt, a.text); });
+    S.votes = {};
+    S.groups = autoGroups(S.answers); S.screen = "reveal";
+  }
   else S.screen = "handoff";
   render();
 }
@@ -323,10 +374,11 @@ const L = {
   veto(gi) { toggleIn(S.vetoed, gi); render(); },
   merge() { if (S.selected.length < 2) return; S.groups = mergeGroups(S.groups, S.selected); S.selected = []; S.vetoed = []; render(); },
   reset() { S.groups = autoGroups(S.answers); S.selected = []; S.vetoed = []; render(); },
+  vote(ai, t) { S.votes[ai] = S.votes[ai]?.grupo === t ? {} : { grupo: t }; render(); },
   confirm() {
     S.lastDelta = S.players.map(() => 0);
     S.lastJinx = S.players.map(() => false);
-    const pa = answerPoints(S.answers, S.groups, S.vetoed, S.players.length);
+    const pa = answerPoints(S.answers, S.groups, S.vetoed, S.players.length, finalTiers(S.answers, S.votes));
     S.answers.forEach((a, ai) => { S.lastDelta[a.player] += pa[ai]; });
     S.groups.forEach(g => { if (g.length > 1) g.forEach(ai => { S.lastJinx[S.answers[ai].player] = true; }); });
     S.lastDelta.forEach((d, i) => S.scores[i] += d);
@@ -344,7 +396,7 @@ const TOPIC_ROOT = "gafados-es/v2/";
 let ME = store.get("gafados-pid");
 if (!ME) { ME = "p" + Math.random().toString(36).slice(2, 12); store.set("gafados-pid", ME); }
 let client = null, clientPromise = null, preferBroker = null;
-const APP_VERSION = "5";
+const APP_VERSION = "6";
 const brokerLabel = () => client ? (client.brokerUrl.includes("hivemq") ? "HiveMQ" : client.brokerUrl.includes("emqx") ? "EMQX" : "local") : "sin conexión";
 let HS = null;           // estado completo de la partida (solo en el móvil del anfitrión)
 let O = null;            // lo que pinta la pantalla: {code, game, players, answers, ...}
@@ -424,9 +476,20 @@ function onHostMsg(d) {
     syncAll();
   } else if (d.t === "answer") {
     if (Number(d.round) === g.roundNo) hostAnswer(pid, d.text);
+  } else if (d.t === "vote") {
+    hostVote(pid, Number(d.round), Number(d.ai), d.tier === null ? null : Number(d.tier));
   } else if (d.t === "leave") {
     if (g.status === "lobby" && HS.players[pid]) { delete HS.players[pid]; syncAll(); }
   }
+}
+function hostVote(pid, round, ai, tier) {
+  const g = HS.game, a = g.revealAnswers?.[ai];
+  if (g.status !== "reveal" || round !== g.roundNo || !a || a.pid === pid || !g.order.includes(pid)) return;
+  if (tier !== null && !(tier >= 0 && tier < TIERS.length)) return;
+  const votes = { ...(g.votes || {}) }, mine = { ...(votes[ai] || {}) };
+  if (tier === null) delete mine[pid]; else mine[pid] = tier;
+  votes[ai] = mine;
+  hostWrite({ votes });
 }
 function hostAnswer(pid, text) {
   const g = HS.game, t = String(text || "").trim().slice(0, 40);
@@ -535,6 +598,13 @@ function onState(d) {
   const g = O.game;
   if (g.status !== "lobby" && !(g.order || []).includes(ME)) { O.fatal = "Esa partida ya ha empezado. Pide que creen una nueva."; render(); return; }
   if (g.status === "lobby" && !O.players[ME] && Object.keys(O.players).length >= 10) { O.fatal = "La partida está llena (máximo 10 jugadores)."; render(); return; }
+  if (g.status === "reveal" && O.myVotes?.round === g.roundNo) {
+    g.votes = { ...(g.votes || {}) };
+    for (const [ai, t] of Object.entries(O.myVotes.v)) {
+      g.votes[ai] = { ...(g.votes[ai] || {}) };
+      if (t === null) delete g.votes[ai][ME]; else g.votes[ai][ME] = t;
+    }
+  }
   O.hostHasMine = O.answers[ME]?.round === g.roundNo;
   if (O.myAnswer && O.myAnswer.round === g.roundNo) O.answers[ME] = O.myAnswer;
   else if (O.hostHasMine) O.answers[ME] = { round: g.roundNo, text: "(enviada)" };
@@ -548,7 +618,27 @@ function resendIfNeeded() {
   if (now - O.lastJoin < 3000) return;
   if (g.status === "lobby" && !O.players[ME]) { O.lastJoin = now; pub(topic(O.code, "up"), { t: "join", pid: ME, name: O.name }); }
   else if (g.status === "writing" && O.myAnswer?.round === g.roundNo && !O.hostHasMine) { O.lastJoin = now; pub(topic(O.code, "up"), { t: "answer", pid: ME, round: g.roundNo, text: O.myAnswer.text }); }
+  else if (g.status === "reveal" && O.myVotes?.round === g.roundNo) {
+    for (const [ai, t] of Object.entries(O.myVotes.v)) {
+      if ((g.votes?.[ai]?.[ME] ?? null) !== t) { O.lastJoin = now; pub(topic(O.code, "up"), { t: "vote", pid: ME, round: g.roundNo, ai: Number(ai), tier: t }); }
+    }
+  }
 }
+
+function voteOnline(ai, t) {
+  if (!O?.game || O.game.status !== "reveal") return;
+  const cur = O.game.votes?.[ai]?.[ME];
+  const tier = cur === t ? null : t; // tocar otra vez el mismo nivel quita el voto
+  if (O.host) { hostVote(ME, O.game.roundNo, ai, tier); return; }
+  O.myVotes = O.myVotes?.round === O.game.roundNo ? O.myVotes : { round: O.game.roundNo, v: {} };
+  O.myVotes.v[ai] = tier;
+  O.game.votes = { ...(O.game.votes || {}), [ai]: { ...(O.game.votes?.[ai] || {}) } };
+  if (tier === null) delete O.game.votes[ai][ME]; else O.game.votes[ai][ME] = tier;
+  O.lastJoin = Date.now();
+  pub(topic(O.code, "up"), { t: "vote", pid: ME, round: O.game.roundNo, ai, tier });
+  render();
+}
+const OV = { vote: voteOnline };
 
 /* ---------- Comunes ---------- */
 function submitOnline(text) {
@@ -591,9 +681,9 @@ const H = {
   },
   reveal() {
     const g = O.game;
-    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text, ord: HS.answers[p].at }));
+    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text, ord: HS.answers[p].at, db: tierOf(g.prompt, HS.answers[p].text) }));
     O.selected = [];
-    hostWrite({ status: "reveal", revealAnswers: arr, groups: autoGroups(arr).map(m => ({ m })), vetoed: [] });
+    hostWrite({ status: "reveal", revealAnswers: arr, groups: autoGroups(arr).map(m => ({ m })), vetoed: [], votes: {} });
   },
   pick(gi) { toggleIn(O.selected, gi); render(); },
   veto(gi) { const v = (O.game.vetoed || []).slice(); toggleIn(v, gi); hostWrite({ vetoed: v }); },
@@ -607,7 +697,7 @@ const H = {
   confirm() {
     const g = O.game, groups = g.groups.map(x => x.m);
     const delta = Object.fromEntries(g.order.map(p => [p, 0])), jinx = {};
-    const pa = answerPoints(g.revealAnswers, groups, g.vetoed || [], g.order.length);
+    const pa = answerPoints(g.revealAnswers, groups, g.vetoed || [], g.order.length, finalTiers(g.revealAnswers, g.votes));
     g.revealAnswers.forEach((a, ai) => { delta[a.pid] = (delta[a.pid] || 0) + pa[ai]; });
     groups.forEach(m => { if (m.length > 1) m.forEach(ai => { jinx[g.revealAnswers[ai].pid] = true; }); });
     const scores = { ...g.scores };
@@ -664,6 +754,7 @@ function rulesHTML() {
       <li>Sale una categoría, por ejemplo <b>«Una fruta roja»</b>.</li>
       <li>Cada jugador escribe una respuesta en secreto.</li>
       <li>Si tu respuesta es <b>única</b>, puntúas según lo rápido que contestes: el <b>primero</b> gana tantos puntos como <b>jugadores + 1</b>, y cada siguiente, <b>uno menos</b>. Con 4 jugadores: 5, 4, 3 y 2.</li>
+      <li>Además, cada respuesta única suma según lo rara que sea: <b>común +1</b>, <b>infrecuente +2</b>, <b>rara +3</b> y <b>original +5</b>. Si la respuesta no está en la lista del juego, la valoran los demás jugadores.</li>
       <li>Online cuenta el orden en que llegan las respuestas. En un solo móvil, el tiempo que tarda cada uno desde que pulsa «Estoy listo».</li>
       <li>Si coincides con alguien, <b>estáis gafados</b> y nadie de ese grupo puntúa.</li>
       <li>La respuesta tiene que encajar en la categoría. Si alguien se pasa de listo, marcadla como <b>«No vale»</b>.</li>
@@ -739,20 +830,38 @@ function vOnline() {
 }
 
 /* ---- Piezas compartidas ---- */
-function groupsHTML(answers, groups, vetoed, selected, editable, ns, nPlayers) {
-  const pa = answerPoints(answers, groups, vetoed, nPlayers), rk = answerRanks(answers);
+function tierPill(t) { return t == null ? "" : `<span class="tier t${t}">${TIERS[t].n} +${TIERS[t].b}</span>`; }
+// ctx: {answers, groups, vetoed, selected, editable, ns, n, votes, voteNs, isMine(ai), voters(ai)}
+function groupsHTML(ctx) {
+  const { answers, groups, vetoed, selected, editable, ns, n, votes, voteNs } = ctx;
+  const tiers = finalTiers(answers, votes);
+  const pa = answerPoints(answers, groups, vetoed, n, tiers), rk = answerRanks(answers);
   return `<div class="groups">${groups.map((g, gi) => {
     const words = [...new Set(g.map(ai => answers[ai].text))];
     const names = g.map(ai => answers[ai].name + (rk[ai] !== null ? ` (${rk[ai] + 1}º)` : ""));
     const jinx = g.length > 1, sel = selected.includes(gi), vet = vetoed.includes(gi);
-    const badge = jinx ? `<span class="pill jinx">¡Gafados!</span>` : vet ? `<span class="pill dim">No vale</span>` : `<span class="pill ok">Original</span>`;
-    const inner = `<span class="word">${words.map(esc).join(" · ")}</span><span class="who-list">${names.map(esc).join(", ")} ${badge}</span>`;
+    const badge = jinx ? `<span class="pill jinx">¡Gafados!</span>` : vet ? `<span class="pill dim">No vale</span>` : `<span class="pill ok">Única</span>`;
+    const ai0 = g[0], a0 = answers[ai0];
+    const scoring = !jinx && !vet;
+    // Nivel: el de la base (también se enseña a los gafados) o el votado
+    let tierBit = a0.db != null ? tierPill(a0.db) : "", voteRow = "";
+    if (scoring && a0.db == null) {
+      const v = votes?.[ai0] || {}, cast = Object.keys(v).length, need = ctx.voters(ai0);
+      tierBit = tiers[ai0] != null ? tierPill(tiers[ai0]) : `<span class="tier pending">Por valorar</span>`;
+      const mine = ctx.myVote(ai0);
+      voteRow = ctx.isMine(ai0)
+        ? `<div class="vote-row"><p class="hint">Los demás están valorando tu respuesta (${cast}/${need} votos).</p></div>`
+        : `<div class="vote-row"><p class="hint">No está en la lista. ¿Cómo de rara es? ${need > 1 ? `(${cast}/${need} votos)` : ""}</p>
+           <div class="vote">${TIERS.map((t, k) => `<button type="button" class="vbtn t${k} ${mine === k ? "on" : ""}" aria-pressed="${mine === k}" onclick="${voteNs}.vote(${ai0},${k})">${t.n}<small>+${t.b}</small></button>`).join("")}</div></div>`;
+    }
+    const inner = `<span class="word">${words.map(esc).join(" · ")}</span><span class="who-list">${names.map(esc).join(", ")} ${badge} ${tierBit}</span>`;
     return `<div class="group ${jinx ? "jinx" : ""} ${sel ? "sel" : ""} ${vet ? "vetoed" : ""}">
       ${editable ? `<button type="button" class="pick" aria-pressed="${sel}" aria-label="Seleccionar ${esc(words.join(", "))} para unir" onclick="${ns}.pick(${gi})">${inner}</button>` : `<div class="pick">${inner}</div>`}
       <div class="side">
-        <span class="pts">+${g.reduce((n, ai) => n + pa[ai], 0)}</span>
+        <span class="pts">+${g.reduce((acc, ai) => acc + pa[ai], 0)}</span>
         ${editable && !jinx ? `<button type="button" class="veto" aria-pressed="${vet}" onclick="${ns}.veto(${gi})">No vale</button>` : ""}
       </div>
+      ${voteRow}
     </div>`;
   }).join("")}</div>`;
 }
@@ -809,12 +918,13 @@ function vWrite() {
   </section>`;
 }
 function vReveal() {
-  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player], ord: a.ord }));
+  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player], ord: a.ord, db: a.db }));
   return `<section class="card">
     ${header()}
     <p class="prompt">${esc(S.prompt)}</p>
     ${bannerHTML(S.groups)}
-    ${groupsHTML(answers, S.groups, S.vetoed, S.selected, true, "L", S.players.length)}
+    ${groupsHTML({ answers, groups: S.groups, vetoed: S.vetoed, selected: S.selected, editable: true, ns: "L", n: S.players.length, votes: S.votes, voteNs: "L", isMine: () => false, voters: () => 1, myVote: ai => S.votes[ai]?.grupo ?? null })}
+    <p class="hint">Las respuestas que no están en la lista las valoráis entre todos. Sin valorar cuentan como comunes.</p>
     ${noAnswerHTML(S.answers.filter(a => !norm(a.text)).map(a => S.players[a.player]))}
     ${editControls("L", S.selected.length, false)}
     <button class="btn big sun" type="button" onclick="L.confirm()">Apuntar puntos</button>
@@ -909,16 +1019,17 @@ function vOnlineGame() {
 
   const rows = g.order.map(p => ({ name: nameOf(p), s: g.scores?.[p] || 0, d: g.lastDelta?.[p] || 0, j: !!g.lastJinx?.[p], me: p === ME }));
   if (g.status === "reveal") {
-    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid), ord: a.ord }));
+    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid), ord: a.ord, db: a.db }));
     const groups = g.groups.map(x => x.m);
     const silent = g.order.filter(p => !g.revealAnswers.some(a => a.pid === p));
     return `<section class="card">
       ${top}${roundLbl}
       <p class="prompt">${esc(g.prompt)}</p>
       ${bannerHTML(groups)}
-      ${groupsHTML(answers, groups, g.vetoed || [], isHost ? O.selected : [], isHost, "H", g.order.length)}
+      ${groupsHTML({ answers, groups, vetoed: g.vetoed || [], selected: isHost ? O.selected : [], editable: isHost, ns: "H", n: g.order.length, votes: g.votes || {}, voteNs: "OV",
+        isMine: ai => g.revealAnswers[ai].pid === ME, voters: () => g.order.length - 1, myVote: ai => g.votes?.[ai]?.[ME] ?? null })}
       ${noAnswerHTML(silent.map(nameOf))}
-      ${isHost ? `${editControls("H", O.selected.length, O.busy)}<button class="btn big sun" type="button" ${busy} onclick="H.confirm()">Apuntar puntos</button>` : `<p class="hint center">${esc(hostName)} puede unir respuestas iguales o anular las que no valgan.</p>`}
+      ${isHost ? `${editControls("H", O.selected.length, O.busy)}<p class="hint">Las respuestas sin valorar cuentan como comunes.</p><button class="btn big sun" type="button" ${busy} onclick="H.confirm()">Apuntar puntos</button>` : `<p class="hint center">${esc(hostName)} puede unir respuestas iguales o anular las que no valgan, y apunta los puntos cuando hayáis votado.</p>`}
       ${err}
     </section>`;
   }
