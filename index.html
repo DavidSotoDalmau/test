@@ -133,7 +133,32 @@ details b { color: var(--ink); }
 .sent b { font-size: 1.2rem; overflow-wrap: anywhere; }
 .banner.good { color: var(--good); }
 .card.compact { gap: 12px; }
+.seg.time { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); }
+.seg.time button { padding: 10px 6px; font-size: .95rem; }
+.timer { display: flex; align-items: center; gap: 12px; }
+.tnum { font-family: var(--font-display); font-size: 1.7rem; line-height: 1; min-width: 2.2ch; text-align: right; font-variant-numeric: tabular-nums; color: var(--accent); }
+.tbar { flex: 1; height: 12px; border-radius: 999px; background: var(--line); overflow: hidden; border: 2px solid var(--ink); }
+.tfill { height: 100%; background: var(--accent); transition: width .2s linear; }
+.timer.hurry .tnum { color: var(--jinx); }
+.timer.hurry .tfill { background: var(--jinx); }
+.timeup { padding: 14px; border-radius: 12px; background: var(--jinx-soft); border: 2px solid var(--jinx); color: var(--ink); font-weight: 700; text-align: center; }
+.noans { font-size: .9rem; color: var(--muted); }
+.tier { display: inline-block; padding: 1px 8px; border-radius: 6px; font-weight: 800; font-size: .74rem; white-space: nowrap; border: 1.5px solid var(--ink); }
+.tier.t0 { background: var(--card); color: var(--muted); border-color: var(--line); }
+.tier.t1 { background: var(--soft); color: var(--accent); border-color: var(--accent); }
+.tier.t2 { background: var(--sun); color: var(--sun-ink); }
+.tier.t3 { background: var(--ink); color: var(--sun); }
+.tier.pending { background: transparent; color: var(--muted); border-style: dashed; border-color: var(--muted); }
+.vote-row { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; padding: 2px 6px 6px; }
+.vote { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.vbtn { border: 2px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 6px 2px; font-weight: 800; font-size: .78rem; display: flex; flex-direction: column; align-items: center; line-height: 1.2; min-width: 0; }
+.vbtn small { font-weight: 600; color: var(--muted); }
+.vbtn.on { border-color: var(--ink); background: var(--sun); color: var(--sun-ink); }
+.vbtn.on small { color: var(--sun-ink); }
+.vbtn:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
 @media (prefers-reduced-motion: no-preference) {
+  .timer.hurry .tnum { animation: beat .5s ease-in-out infinite alternate; }
+  @keyframes beat { to { transform: scale(1.18); } }
   .card { animation: deal .28s ease-out; }
   @keyframes deal { from { transform: translateY(8px) rotate(-.6deg); } to { transform: none; } }
   .group.jinx { animation: shake .4s ease-in-out 1; }
@@ -147,11 +172,12 @@ details b { color: var(--ink); }
 <div class="wrap">
   <header class="brand">
     <h1 class="logo">¡Gafa<span>dos!</span></h1>
-    <p class="tag">Piensa distinto o quedas gafado</p>
+    <p class="tag">Piensa distinto o quedas gafado · <span class="ver">v7</span></p>
   </header>
   <main id="app"></main>
 </div>
 
+<script src="palabras.js"></script>
 <script>
 const PROMPTS = [
   "Una fruta roja","Algo que llevas a la playa","Un animal de granja","Un color del arcoíris","Una ciudad española",
@@ -201,16 +227,95 @@ function autoGroups(answers) {
   const map = new Map(); const groups = [];
   answers.forEach((a, i) => {
     const k = canon(keys[i]);
+    if (!k) return; // sin respuesta: no entra en ningún grupo y no puntúa
     if (!map.has(k)) { map.set(k, groups.length); groups.push([]); }
     groups[map.get(k)].push(i);
   });
   return groups;
 }
-// Solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida
-// Solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida
-const ORIGINAL_POINTS = 1;
-function pts(g, gi, vetoed) { return g.length === 1 && !vetoed.includes(gi) ? ORIGINAL_POINTS : 0; }
+/* Puntuación: solo puntúa una respuesta que nadie más ha escrito y que el grupo da por válida.
+   Vale más cuanto antes se haya contestado: el primero gana (jugadores + 1) y cada siguiente,
+   un punto menos. El orden cuenta entre todos los que respondieron, gafados incluidos. */
+function answerRanks(answers) {
+  const idx = answers.map((_, i) => i).filter(i => norm(answers[i].text)).sort((a, b) => (answers[a].ord ?? a) - (answers[b].ord ?? b));
+  const r = answers.map(() => null);
+  idx.forEach((i, k) => r[i] = k);
+  return r;
+}
+/* Rareza: cada categoría tiene en palabras.js respuestas comunes, infrecuentes, raras y originales.
+   Una respuesta única suma además el extra de su nivel. Si no está en la base, la valoran
+   los demás jugadores: gana el nivel más votado y, si hay empate, el más bajo. */
+const TIERS = [{ key: "comun", n: "Común", b: 1 }, { key: "infrecuente", n: "Infrecuente", b: 2 }, { key: "rara", n: "Rara", b: 3 }, { key: "original", n: "Original", b: 5 }];
+const tierIndexCache = {};
+function tierOf(prompt, text) {
+  const db = typeof PALABRAS === "object" ? PALABRAS[prompt] : null;
+  const k = norm(text);
+  if (!db || !k) return null;
+  if (!tierIndexCache[prompt]) {
+    const m = new Map();
+    TIERS.forEach((t, i) => (db[t.key] || []).forEach(w => { const n = norm(w); if (n && !m.has(n)) m.set(n, i); }));
+    tierIndexCache[prompt] = m;
+  }
+  const m = tierIndexCache[prompt];
+  const cands = [k, k + "s", k + "es"];
+  if (k.endsWith("es")) cands.push(k.slice(0, -2));
+  if (k.endsWith("s")) cands.push(k.slice(0, -1));
+  for (const c of cands) if (m.has(c)) return m.get(c);
+  return null;
+}
+function mostVoted(v) {
+  const counts = [0, 0, 0, 0];
+  Object.values(v || {}).forEach(t => { if (counts[t] !== undefined) counts[t]++; });
+  const max = Math.max(...counts);
+  return max ? counts.indexOf(max) : null;
+}
+// Nivel final de cada respuesta: el de la base o el votado; null si aún no se sabe
+function finalTiers(answers, votes) {
+  return answers.map((a, i) => a.db != null ? a.db : mostVoted(votes?.[i]));
+}
+function answerPoints(answers, groups, vetoed, nPlayers, tiers) {
+  const r = answerRanks(answers), out = answers.map(() => 0);
+  groups.forEach((g, gi) => {
+    if (g.length === 1 && !vetoed.includes(gi)) out[g[0]] = Math.max(1, nPlayers + 1 - r[g[0]]) + TIERS[tiers?.[g[0]] ?? 0].b;
+  });
+  return out;
+}
 const store = { get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+
+/* ================= Cuenta atrás ================= */
+const TIME_OPTS = [0, 60, 50, 40, 30, 20, 10];
+let lastBeep = -1;
+function timerHTML(deadline, total, kind) {
+  if (!deadline || !total) return "";
+  const left = Math.max(0, deadline - Date.now()), sec = Math.ceil(left / 1000);
+  return `<div class="timer ${sec <= 10 ? "hurry" : ""}" data-deadline="${deadline}" data-total="${total}" data-kind="${kind}" role="timer" aria-label="Tiempo restante">
+    <span class="tnum">${sec}</span><div class="tbar"><div class="tfill" style="width:${(100 * left / (total * 1000)).toFixed(1)}%"></div></div></div>`;
+}
+function onTimeUp(kind) {
+  const v = document.getElementById("ans")?.value || "";
+  if (kind === "local") { if (S.screen === "write" && S.deadline) submitAnswer(v); return; }
+  if (!O || !O.game || O.game.status !== "writing" || O.timeUpRound === O.game.roundNo) return;
+  O.timeUpRound = O.game.roundNo;
+  const answered = O.answers[ME]?.round === O.game.roundNo;
+  if (!answered && v.trim()) submitOnline(v); else render();
+}
+function tick() {
+  const el = document.querySelector("[data-deadline]");
+  if (el) {
+    const dl = Number(el.dataset.deadline), total = Number(el.dataset.total);
+    const left = Math.max(0, dl - Date.now()), sec = Math.ceil(left / 1000);
+    el.querySelector(".tnum").textContent = sec;
+    el.querySelector(".tfill").style.width = (100 * left / (total * 1000)).toFixed(1) + "%";
+    el.classList.toggle("hurry", sec <= 10);
+    if (sec <= 5 && sec > 0 && sec !== lastBeep) { lastBeep = sec; try { navigator.vibrate?.(40); } catch {} }
+    if (left <= 0) onTimeUp(el.dataset.kind);
+  }
+  // El anfitrión revela solo cuando se acaba el tiempo (con 2 s de margen para los rezagados)
+  if (HS && O && HS.game.status === "writing" && HS.game.deadline && Date.now() > HS.game.deadline + 2000 && HS.autoRevealed !== HS.game.roundNo) {
+    HS.autoRevealed = HS.game.roundNo; H.reveal();
+  }
+}
+setInterval(tick, 200);
 
 /* ================= Estado local (un solo móvil) ================= */
 let S;
@@ -219,6 +324,7 @@ function freshState(prev) {
     screen: "home",
     players: prev?.players || ["Ana", "Luis", "Marta", "Pablo"],
     totalRounds: prev?.totalRounds || 8,
+    timeLimit: prev?.timeLimit ?? 0, deadline: 0,
     deck: [], roundNo: 0, prompt: "",
     turn: 0, answers: [], groups: [], selected: [], vetoed: [],
     scores: [], lastDelta: [], lastJinx: []
@@ -238,10 +344,20 @@ function nextRound() {
   S.prompt = S.deck[(S.roundNo - 1) % S.deck.length];
   S.screen = "handoff"; render();
 }
+function startTurn() {
+  S.deadline = S.timeLimit ? Date.now() + S.timeLimit * 1000 : 0;
+  S.turnStart = Date.now();
+  S.screen = "write"; render();
+}
 function submitAnswer(text) {
-  S.answers.push({ player: S.turn, text: text.trim() });
+  S.deadline = 0;
+  S.answers.push({ player: S.turn, text: text.trim(), ord: Date.now() - (S.turnStart || Date.now()) }); // en un solo móvil cuenta lo que tarda cada uno
   S.turn++;
-  if (S.turn >= S.players.length) { S.groups = autoGroups(S.answers); S.screen = "reveal"; }
+  if (S.turn >= S.players.length) {
+    S.answers.forEach(a => { a.db = tierOf(S.prompt, a.text); });
+    S.votes = {};
+    S.groups = autoGroups(S.answers); S.screen = "reveal";
+  }
   else S.screen = "handoff";
   render();
 }
@@ -258,13 +374,13 @@ const L = {
   veto(gi) { toggleIn(S.vetoed, gi); render(); },
   merge() { if (S.selected.length < 2) return; S.groups = mergeGroups(S.groups, S.selected); S.selected = []; S.vetoed = []; render(); },
   reset() { S.groups = autoGroups(S.answers); S.selected = []; S.vetoed = []; render(); },
+  vote(ai, t) { S.votes[ai] = S.votes[ai]?.grupo === t ? {} : { grupo: t }; render(); },
   confirm() {
     S.lastDelta = S.players.map(() => 0);
     S.lastJinx = S.players.map(() => false);
-    S.groups.forEach((g, gi) => {
-      const p = pts(g, gi, S.vetoed);
-      g.forEach(ai => { const pl = S.answers[ai].player; S.lastDelta[pl] += p; if (g.length > 1) S.lastJinx[pl] = true; });
-    });
+    const pa = answerPoints(S.answers, S.groups, S.vetoed, S.players.length, finalTiers(S.answers, S.votes));
+    S.answers.forEach((a, ai) => { S.lastDelta[a.player] += pa[ai]; });
+    S.groups.forEach(g => { if (g.length > 1) g.forEach(ai => { S.lastJinx[S.answers[ai].player] = true; }); });
     S.lastDelta.forEach((d, i) => S.scores[i] += d);
     S.screen = S.roundNo >= S.totalRounds ? "final" : "scores";
     render();
@@ -279,7 +395,9 @@ const BROKERS = ["wss://broker.hivemq.com:8884/mqtt", "wss://broker.emqx.io:8084
 const TOPIC_ROOT = "gafados-es/v2/";
 let ME = store.get("gafados-pid");
 if (!ME) { ME = "p" + Math.random().toString(36).slice(2, 12); store.set("gafados-pid", ME); }
-let client = null, clientPromise = null;
+let client = null, clientPromise = null, preferBroker = null;
+const APP_VERSION = "7";
+const brokerLabel = () => client ? (client.brokerUrl.includes("hivemq") ? "HiveMQ" : client.brokerUrl.includes("emqx") ? "EMQX" : "local") : "sin conexión";
 let HS = null;           // estado completo de la partida (solo en el móvil del anfitrión)
 let O = null;            // lo que pinta la pantalla: {code, game, players, answers, ...}
 let wakeLock = null, joinTimer = null;
@@ -303,8 +421,7 @@ function getClient() {
   if (client) return Promise.resolve(client);
   if (clientPromise) return clientPromise;
   clientPromise = (async () => {
-    const saved = store.get("gafados-broker");
-    const order = saved && BROKERS.includes(saved) ? [saved, ...BROKERS.filter(b => b !== saved)] : BROKERS;
+    const order = preferBroker && BROKERS.includes(preferBroker) ? [preferBroker, ...BROKERS.filter(b => b !== preferBroker)] : BROKERS;
     for (const url of order) {
       try {
         const c = await connectBroker(url);
@@ -339,7 +456,7 @@ function publishState() {
   if (!HS || !client) return;
   // Nadie recibe el texto de las respuestas hasta que se revelan
   const answers = Object.fromEntries(Object.entries(HS.answers).map(([p, a]) => [p, { round: a.round }]));
-  pub(topic(HS.code, "state"), { code: HS.code, game: HS.game, players: HS.players, answers, savedAt: Date.now() }, true);
+  pub(topic(HS.code, "state"), { code: HS.code, game: HS.game, players: HS.players, answers, savedAt: Date.now(), now: Date.now() }, true);
 }
 function syncAll() {
   if (!HS) return;
@@ -359,14 +476,26 @@ function onHostMsg(d) {
     syncAll();
   } else if (d.t === "answer") {
     if (Number(d.round) === g.roundNo) hostAnswer(pid, d.text);
+  } else if (d.t === "vote") {
+    hostVote(pid, Number(d.round), Number(d.ai), d.tier === null ? null : Number(d.tier));
   } else if (d.t === "leave") {
     if (g.status === "lobby" && HS.players[pid]) { delete HS.players[pid]; syncAll(); }
   }
 }
+function hostVote(pid, round, ai, tier) {
+  const g = HS.game, a = g.revealAnswers?.[ai];
+  if (g.status !== "reveal" || round !== g.roundNo || !a || a.pid === pid || !g.order.includes(pid)) return;
+  if (tier !== null && !(tier >= 0 && tier < TIERS.length)) return;
+  const votes = { ...(g.votes || {}) }, mine = { ...(votes[ai] || {}) };
+  if (tier === null) delete mine[pid]; else mine[pid] = tier;
+  votes[ai] = mine;
+  hostWrite({ votes });
+}
 function hostAnswer(pid, text) {
   const g = HS.game, t = String(text || "").trim().slice(0, 40);
   if (g.status !== "writing" || !g.order.includes(pid) || !t) return;
-  HS.answers[pid] = { round: g.roundNo, text: t };
+  if (HS.answers[pid]?.round === g.roundNo) return; // la primera respuesta es la que vale (y su orden)
+  HS.answers[pid] = { round: g.roundNo, text: t, at: Date.now() };
   syncAll();
 }
 function hostWrite(patch) { if (!HS) return; Object.assign(HS.game, patch); syncAll(); }
@@ -396,7 +525,7 @@ async function createGame() {
     let code = makeCode();
     for (let i = 0; i < 4 && await codeTaken(code); i++) code = makeCode();
     store.del("gafados-game");
-    await becomeHost({ code, game: { host: ME, status: "lobby", totalRounds: S.totalRounds, roundNo: 0, createdAt: Date.now() }, players: { [ME]: { name, joinedAt: Date.now() } }, answers: {} });
+    await becomeHost({ code, game: { host: ME, status: "lobby", totalRounds: S.totalRounds, timeLimit: S.timeLimit, roundNo: 0, createdAt: Date.now() }, players: { [ME]: { name, joinedAt: Date.now() } }, answers: {} });
   } catch { S.onlineErr = netErr(); }
   S.onlineBusy = false; render();
 }
@@ -406,7 +535,7 @@ async function resumeHost() {
   S.onlineErr = ""; S.onlineBusy = true; render();
   try {
     leaveQuiet();
-    if (saved.broker) store.set("gafados-broker", saved.broker);
+    preferBroker = saved.broker || null;
     await getClient();
     await becomeHost({ code: saved.code, game: saved.game, players: saved.players, answers: saved.answers });
   } catch { S.onlineErr = netErr(); S.screen = "online"; }
@@ -431,7 +560,7 @@ async function joinGame(codeArg) {
     pub(topic(code, "up"), { t: "join", pid: ME, name });
     O.lastJoin = Date.now();
     clearTimeout(joinTimer);
-    joinTimer = setTimeout(() => tryOtherBroker(code), 6000);
+    joinTimer = setTimeout(() => tryOtherBroker(code), 8000);
   } catch { S.onlineErr = netErr(); S.screen = "online"; O = null; }
   S.onlineBusy = false; render();
 }
@@ -443,17 +572,18 @@ async function tryOtherBroker(code) {
     O.triedOther = true;
     try { client.end(true); } catch {}
     client = null; clientPromise = null;
-    store.set("gafados-broker", other);
+    preferBroker = other;
     try {
       await getClient();
       if (!O) return;
       await sub(topic(code, "state"));
       pub(topic(code, "up"), { t: "join", pid: ME, name: O.name });
-      joinTimer = setTimeout(() => tryOtherBroker(code), 6000);
+      joinTimer = setTimeout(() => tryOtherBroker(code), 8000);
       return;
     } catch {}
   }
-  if (O && !O.loaded) { O.fatal = `No hay ninguna partida con el código ${code}, o el móvil del anfitrión está desconectado.`; render(); }
+  preferBroker = null;
+  if (O && !O.loaded) { O.fatal = `No encuentro la partida ${code}. Comprueba el código y que el anfitrión tenga la página abierta, con el móvil desbloqueado y la misma versión del juego (versión ${APP_VERSION}).`; O.canRetry = true; render(); }
 }
 function onState(d) {
   if (!d) {
@@ -462,12 +592,19 @@ function onState(d) {
   }
   if (Date.now() - (d.savedAt || 0) > 6 * 3600e3 && !O.loaded) return;
   clearTimeout(joinTimer);
-  store.set("gafados-broker", client.brokerUrl);
+  O.clockOffset = (d.now || Date.now()) - Date.now(); // diferencia entre el reloj del anfitrión y el mío
   O.game = d.game; O.players = d.players || {}; O.answers = d.answers || {};
-  O.loaded = true; O.slow = false; O.err = "";
+  O.loaded = true; O.slow = false; O.err = ""; O.reconnecting = false;
   const g = O.game;
   if (g.status !== "lobby" && !(g.order || []).includes(ME)) { O.fatal = "Esa partida ya ha empezado. Pide que creen una nueva."; render(); return; }
   if (g.status === "lobby" && !O.players[ME] && Object.keys(O.players).length >= 10) { O.fatal = "La partida está llena (máximo 10 jugadores)."; render(); return; }
+  if (g.status === "reveal" && O.myVotes?.round === g.roundNo) {
+    g.votes = { ...(g.votes || {}) };
+    for (const [ai, t] of Object.entries(O.myVotes.v)) {
+      g.votes[ai] = { ...(g.votes[ai] || {}) };
+      if (t === null) delete g.votes[ai][ME]; else g.votes[ai][ME] = t;
+    }
+  }
   O.hostHasMine = O.answers[ME]?.round === g.roundNo;
   if (O.myAnswer && O.myAnswer.round === g.roundNo) O.answers[ME] = O.myAnswer;
   else if (O.hostHasMine) O.answers[ME] = { round: g.roundNo, text: "(enviada)" };
@@ -481,7 +618,27 @@ function resendIfNeeded() {
   if (now - O.lastJoin < 3000) return;
   if (g.status === "lobby" && !O.players[ME]) { O.lastJoin = now; pub(topic(O.code, "up"), { t: "join", pid: ME, name: O.name }); }
   else if (g.status === "writing" && O.myAnswer?.round === g.roundNo && !O.hostHasMine) { O.lastJoin = now; pub(topic(O.code, "up"), { t: "answer", pid: ME, round: g.roundNo, text: O.myAnswer.text }); }
+  else if (g.status === "reveal" && O.myVotes?.round === g.roundNo) {
+    for (const [ai, t] of Object.entries(O.myVotes.v)) {
+      if ((g.votes?.[ai]?.[ME] ?? null) !== t) { O.lastJoin = now; pub(topic(O.code, "up"), { t: "vote", pid: ME, round: g.roundNo, ai: Number(ai), tier: t }); }
+    }
+  }
 }
+
+function voteOnline(ai, t) {
+  if (!O?.game || O.game.status !== "reveal") return;
+  const cur = O.game.votes?.[ai]?.[ME];
+  const tier = cur === t ? null : t; // tocar otra vez el mismo nivel quita el voto
+  if (O.host) { hostVote(ME, O.game.roundNo, ai, tier); return; }
+  O.myVotes = O.myVotes?.round === O.game.roundNo ? O.myVotes : { round: O.game.roundNo, v: {} };
+  O.myVotes.v[ai] = tier;
+  O.game.votes = { ...(O.game.votes || {}), [ai]: { ...(O.game.votes?.[ai] || {}) } };
+  if (tier === null) delete O.game.votes[ai][ME]; else O.game.votes[ai][ME] = tier;
+  O.lastJoin = Date.now();
+  pub(topic(O.code, "up"), { t: "vote", pid: ME, round: O.game.roundNo, ai, tier });
+  render();
+}
+const OV = { vote: voteOnline };
 
 /* ---------- Comunes ---------- */
 function submitOnline(text) {
@@ -513,19 +670,20 @@ document.addEventListener("visibilitychange", () => {
   if (client && !client.connected) { try { client.reconnect(); } catch {} }
   keepAwake();
 });
+const roundDeadline = () => O.game.timeLimit ? Date.now() + O.game.timeLimit * 1000 : 0;
 const H = {
   start() {
     const order = Object.keys(O.players).sort((a, b) => (O.players[a].joinedAt || 0) - (O.players[b].joinedAt || 0));
     const deck = shuffle(PROMPTS.map((_, i) => i));
     const zero = Object.fromEntries(order.map(p => [p, 0]));
     HS.answers = {};
-    hostWrite({ status: "writing", roundNo: 1, order, deck, prompt: PROMPTS[deck[0]], scores: zero, lastDelta: zero, lastJinx: {}, revealAnswers: [], groups: [], vetoed: [] });
+    hostWrite({ status: "writing", roundNo: 1, deadline: roundDeadline(), order, deck, prompt: PROMPTS[deck[0]], scores: zero, lastDelta: zero, lastJinx: {}, revealAnswers: [], groups: [], vetoed: [] });
   },
   reveal() {
     const g = O.game;
-    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text }));
+    const arr = g.order.filter(p => HS.answers[p]?.round === g.roundNo).map(p => ({ pid: p, text: HS.answers[p].text, ord: HS.answers[p].at, db: tierOf(g.prompt, HS.answers[p].text) }));
     O.selected = [];
-    hostWrite({ status: "reveal", revealAnswers: arr, groups: autoGroups(arr).map(m => ({ m })), vetoed: [] });
+    hostWrite({ status: "reveal", revealAnswers: arr, groups: autoGroups(arr).map(m => ({ m })), vetoed: [], votes: {} });
   },
   pick(gi) { toggleIn(O.selected, gi); render(); },
   veto(gi) { const v = (O.game.vetoed || []).slice(); toggleIn(v, gi); hostWrite({ vetoed: v }); },
@@ -539,21 +697,20 @@ const H = {
   confirm() {
     const g = O.game, groups = g.groups.map(x => x.m);
     const delta = Object.fromEntries(g.order.map(p => [p, 0])), jinx = {};
-    groups.forEach((m, gi) => {
-      const p = pts(m, gi, g.vetoed || []);
-      m.forEach(ai => { const pid = g.revealAnswers[ai].pid; delta[pid] += p; if (m.length > 1) jinx[pid] = true; });
-    });
+    const pa = answerPoints(g.revealAnswers, groups, g.vetoed || [], g.order.length, finalTiers(g.revealAnswers, g.votes));
+    g.revealAnswers.forEach((a, ai) => { delta[a.pid] = (delta[a.pid] || 0) + pa[ai]; });
+    groups.forEach(m => { if (m.length > 1) m.forEach(ai => { jinx[g.revealAnswers[ai].pid] = true; }); });
     const scores = { ...g.scores };
     Object.keys(delta).forEach(p => scores[p] = (scores[p] || 0) + delta[p]);
     O.selected = [];
     hostWrite({ scores, lastDelta: delta, lastJinx: jinx, status: g.roundNo >= g.totalRounds ? "final" : "scores" });
   },
-  next() { const g = O.game, r = g.roundNo + 1; hostWrite({ status: "writing", roundNo: r, prompt: PROMPTS[g.deck[(r - 1) % g.deck.length]] || PROMPTS[0], revealAnswers: [], groups: [], vetoed: [] }); },
+  next() { const g = O.game, r = g.roundNo + 1; hostWrite({ status: "writing", roundNo: r, deadline: roundDeadline(), prompt: PROMPTS[g.deck[(r - 1) % g.deck.length]] || PROMPTS[0], revealAnswers: [], groups: [], vetoed: [] }); },
   rematch() {
     const deck = shuffle(PROMPTS.map((_, i) => i));
     const zero = Object.fromEntries(O.game.order.map(p => [p, 0]));
     HS.answers = {};
-    hostWrite({ status: "writing", roundNo: 1, deck, prompt: PROMPTS[deck[0]], scores: zero, lastDelta: zero, lastJinx: {}, revealAnswers: [], groups: [], vetoed: [] });
+    hostWrite({ status: "writing", roundNo: 1, deadline: roundDeadline(), deck, prompt: PROMPTS[deck[0]], scores: zero, lastDelta: zero, lastJinx: {}, revealAnswers: [], groups: [], vetoed: [] });
   }
 };
 
@@ -596,10 +753,13 @@ function rulesHTML() {
   return `<details><summary>Cómo se juega</summary><ul>
       <li>Sale una categoría, por ejemplo <b>«Una fruta roja»</b>.</li>
       <li>Cada jugador escribe una respuesta en secreto.</li>
-      <li>Si tu respuesta es <b>única</b>, ganas <b>1 punto</b>.</li>
+      <li>Si tu respuesta es <b>única</b>, puntúas según lo rápido que contestes: el <b>primero</b> gana tantos puntos como <b>jugadores + 1</b>, y cada siguiente, <b>uno menos</b>. Con 4 jugadores: 5, 4, 3 y 2.</li>
+      <li>Además, cada respuesta única suma según lo rara que sea: <b>común +1</b>, <b>infrecuente +2</b>, <b>rara +3</b> y <b>original +5</b>. Si la respuesta no está en la lista del juego, la valoran los demás jugadores.</li>
+      <li>Online cuenta el orden en que llegan las respuestas. En un solo móvil, el tiempo que tarda cada uno desde que pulsa «Estoy listo».</li>
       <li>Si coincides con alguien, <b>estáis gafados</b> y nadie de ese grupo puntúa.</li>
       <li>La respuesta tiene que encajar en la categoría. Si alguien se pasa de listo, marcadla como <b>«No vale»</b>.</li>
       <li>Si dos respuestas significan lo mismo («coche» y «auto»), unidlas: también quedan gafadas.</li>
+      <li>Si jugáis con tiempo y se acaba, se envía lo que lleves escrito. Sin respuesta, no puntúas.</li>
       <li>Gana quien tenga más puntos al final.</li>
     </ul></details>`;
 }
@@ -608,8 +768,13 @@ function roundsSeg() {
       <div class="seg">${[5, 8, 12].map(n => `<button type="button" id="r-${n}" aria-pressed="${S.totalRounds === n}" onclick="S.totalRounds=${n};render()">${n}</button>`).join("")}</div>
     </div>`;
 }
+function timeSeg() {
+  return `<div class="stack"><h3>Tiempo por respuesta</h3>
+      <div class="seg time">${TIME_OPTS.map(n => `<button type="button" id="t-${n}" aria-pressed="${S.timeLimit === n}" onclick="S.timeLimit=${n};render()">${n ? n + " s" : "Sin límite"}</button>`).join("")}</div>
+    </div>`;
+}
 function vHome() {
-  const ok = S.players.length >= 3;
+  const ok = S.players.length >= 2, full = S.players.length >= 10;
   return `${onlineEntry()}
   <section class="card">
     <span class="eyebrow">Un solo móvil</span>
@@ -618,12 +783,13 @@ function vHome() {
     <div class="stack"><h3>Jugadores (${S.players.length})</h3>
       <div class="chips">${S.players.map((p, i) => `<span class="chip">${esc(p)}<button class="x" type="button" aria-label="Quitar a ${esc(p)}" onclick="S.players.splice(${i},1);render()">×</button></span>`).join("")}</div>
       <form class="addrow" onsubmit="event.preventDefault();addPlayer()">
-        <input type="text" id="newPlayer" placeholder="Nombre del jugador" maxlength="16" autocomplete="off">
-        <button class="btn ghost" type="submit">Añadir</button>
+        <input type="text" id="newPlayer" placeholder="Nombre del jugador" maxlength="16" autocomplete="off" ${full ? "disabled" : ""}>
+        <button class="btn ghost" type="submit" ${full ? "disabled" : ""}>Añadir</button>
       </form>
-      <p class="hint">${ok ? "De 3 a 10 jugadores. Cuantos más seáis, más fácil es gafarse." : "Hacen falta al menos 3 jugadores."}</p>
+      <p class="hint">${!ok ? "Hacen falta al menos 2 jugadores." : full ? "Ya sois 10, el máximo de jugadores." : "De 2 a 10 jugadores. Cuantos más seáis, más fácil es gafarse."}</p>
     </div>
     ${roundsSeg()}
+    ${timeSeg()}
     <button class="btn big sun" type="button" ${ok ? "" : "disabled"} onclick="startGame()">Empezar partida</button>
     ${rulesHTML()}
   </section>`;
@@ -648,6 +814,7 @@ function vOnline() {
       <div class="stack">
         <h3>Crear partida</h3>
         ${roundsSeg()}
+        ${timeSeg()}
         <button class="btn sun" type="button" ${busy} onclick="createGame()">Crear partida</button>
       </div>
       <div class="stack">
@@ -663,21 +830,43 @@ function vOnline() {
 }
 
 /* ---- Piezas compartidas ---- */
-function groupsHTML(answers, groups, vetoed, selected, editable, ns) {
+function tierPill(t) { return t == null ? "" : `<span class="tier t${t}">${TIERS[t].n} +${TIERS[t].b}</span>`; }
+// ctx: {answers, groups, vetoed, selected, editable, ns, n, votes, voteNs, isMine(ai), voters(ai)}
+function groupsHTML(ctx) {
+  const { answers, groups, vetoed, selected, editable, ns, n, votes, voteNs } = ctx;
+  const tiers = finalTiers(answers, votes);
+  const pa = answerPoints(answers, groups, vetoed, n, tiers), rk = answerRanks(answers);
   return `<div class="groups">${groups.map((g, gi) => {
     const words = [...new Set(g.map(ai => answers[ai].text))];
-    const names = g.map(ai => answers[ai].name);
+    const names = g.map(ai => answers[ai].name + (rk[ai] !== null ? ` (${rk[ai] + 1}º)` : ""));
     const jinx = g.length > 1, sel = selected.includes(gi), vet = vetoed.includes(gi);
-    const badge = jinx ? `<span class="pill jinx">¡Gafados!</span>` : vet ? `<span class="pill dim">No vale</span>` : `<span class="pill ok">Original</span>`;
-    const inner = `<span class="word">${words.map(esc).join(" · ")}</span><span class="who-list">${names.map(esc).join(", ")} ${badge}</span>`;
+    const badge = jinx ? `<span class="pill jinx">¡Gafados!</span>` : vet ? `<span class="pill dim">No vale</span>` : `<span class="pill ok">Única</span>`;
+    const ai0 = g[0], a0 = answers[ai0];
+    const scoring = !jinx && !vet;
+    // Nivel: el de la base (también se enseña a los gafados) o el votado
+    let tierBit = a0.db != null ? tierPill(a0.db) : "", voteRow = "";
+    if (scoring && a0.db == null) {
+      const v = votes?.[ai0] || {}, cast = Object.keys(v).length, need = ctx.voters(ai0);
+      tierBit = tiers[ai0] != null ? tierPill(tiers[ai0]) : `<span class="tier pending">Por valorar</span>`;
+      const mine = ctx.myVote(ai0);
+      voteRow = ctx.isMine(ai0)
+        ? `<div class="vote-row"><p class="hint">Los demás están valorando tu respuesta (${cast}/${need} votos).</p></div>`
+        : `<div class="vote-row"><p class="hint">No está en la lista. ¿Cómo de rara es? ${need > 1 ? `(${cast}/${need} votos)` : ""}</p>
+           <div class="vote">${TIERS.map((t, k) => `<button type="button" class="vbtn t${k} ${mine === k ? "on" : ""}" aria-pressed="${mine === k}" onclick="${voteNs}.vote(${ai0},${k})">${t.n}<small>+${t.b}</small></button>`).join("")}</div></div>`;
+    }
+    const inner = `<span class="word">${words.map(esc).join(" · ")}</span><span class="who-list">${names.map(esc).join(", ")} ${badge} ${tierBit}</span>`;
     return `<div class="group ${jinx ? "jinx" : ""} ${sel ? "sel" : ""} ${vet ? "vetoed" : ""}">
       ${editable ? `<button type="button" class="pick" aria-pressed="${sel}" aria-label="Seleccionar ${esc(words.join(", "))} para unir" onclick="${ns}.pick(${gi})">${inner}</button>` : `<div class="pick">${inner}</div>`}
       <div class="side">
-        <span class="pts">+${pts(g, gi, vetoed)}</span>
+        <span class="pts">+${g.reduce((acc, ai) => acc + pa[ai], 0)}</span>
         ${editable && !jinx ? `<button type="button" class="veto" aria-pressed="${vet}" onclick="${ns}.veto(${gi})">No vale</button>` : ""}
       </div>
+      ${voteRow}
     </div>`;
   }).join("")}</div>`;
+}
+function noAnswerHTML(names) {
+  return names.length ? `<p class="noans">Sin respuesta: ${names.map(esc).join(", ")}</p>` : "";
 }
 function bannerHTML(groups) {
   const n = groups.filter(g => g.length > 1).reduce((a, g) => a + g.length, 0);
@@ -711,15 +900,17 @@ function vHandoff() {
     <div class="who">${esc(name)}</div>
     <p class="muted">Que nadie más mire la pantalla.</p>
     <div class="progress" aria-label="${S.turn} de ${S.players.length} respuestas guardadas">${S.players.map((_, i) => `<span class="${i < S.turn ? "done" : ""}"></span>`).join("")}</div>
-    <button class="btn big" type="button" autofocus onclick="S.screen='write';render()">Soy ${esc(name)}, estoy listo</button>
+    ${S.timeLimit ? `<p class="hint">Tendrás ${S.timeLimit} segundos. El tiempo empieza al pulsar el botón.</p>` : ""}
+    <button class="btn big" type="button" autofocus onclick="startTurn()">Soy ${esc(name)}, estoy listo</button>
   </section>`;
 }
 function vWrite() {
   return `<section class="card">
     ${header()}
     <span class="eyebrow">Turno de ${esc(S.players[S.turn])}</span>
+    ${timerHTML(S.deadline, S.timeLimit, "local")}
     <p class="prompt">${esc(S.prompt)}</p>
-    <p class="hint">Piensa en algo que encaje pero que a nadie más se le ocurra.</p>
+    <p class="hint">Algo que encaje y que a nadie más se le ocurra. ¡Y rápido, que cuenta el orden!</p>
     <form class="stack" onsubmit="event.preventDefault();const v=document.getElementById('ans').value;if(v.trim())submitAnswer(v)">
       <input type="text" id="ans" autofocus autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="Tu respuesta secreta">
       <button class="btn big" type="submit">Guardar y pasar el móvil</button>
@@ -727,12 +918,14 @@ function vWrite() {
   </section>`;
 }
 function vReveal() {
-  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player] }));
+  const answers = S.answers.map(a => ({ text: a.text, name: S.players[a.player], ord: a.ord, db: a.db }));
   return `<section class="card">
     ${header()}
     <p class="prompt">${esc(S.prompt)}</p>
     ${bannerHTML(S.groups)}
-    ${groupsHTML(answers, S.groups, S.vetoed, S.selected, true, "L")}
+    ${groupsHTML({ answers, groups: S.groups, vetoed: S.vetoed, selected: S.selected, editable: true, ns: "L", n: S.players.length, votes: S.votes, voteNs: "L", isMine: () => false, voters: () => 1, myVote: ai => S.votes[ai]?.grupo ?? null })}
+    <p class="hint">Las respuestas que no están en la lista las valoráis entre todos. Sin valorar cuentan como comunes.</p>
+    ${noAnswerHTML(S.answers.filter(a => !norm(a.text)).map(a => S.players[a.player]))}
     ${editControls("L", S.selected.length, false)}
     <button class="btn big sun" type="button" onclick="L.confirm()">Apuntar puntos</button>
   </section>`;
@@ -762,11 +955,13 @@ function vFinal() {
 function vOnlineGame() {
   if (!O) return vOnline();
   const g = O.game;
-  const top = `<div class="row between"><span class="codebadge" aria-label="Código de la partida">${esc(O.code)}</span><button class="btn ghost small" type="button" onclick="leaveGame()">${O.host ? "Terminar" : "Salir"}</button></div>`;
+  const top = `<div class="row between"><span class="codebadge" aria-label="Código de la partida">${esc(O.code)}</span><span class="hint">v${APP_VERSION} · ${brokerLabel()}</span><button class="btn ghost small" type="button" onclick="leaveGame()">${O.host ? "Terminar" : "Salir"}</button></div>`;
   const err = O.err ? `<p class="err" role="alert">${esc(O.err)}</p>` : "";
   if (O.fatal) {
     return `<section class="card">${top}<h2>No se ha podido entrar</h2><p class="muted">${esc(O.fatal)}</p>
-      <button class="btn big" type="button" onclick="leaveGame()">Volver</button></section>`;
+      ${O.canRetry ? `<button class="btn big sun" type="button" onclick="joinGame('${esc(O.code)}')">Reintentar</button>` : ""}
+      <button class="btn big ghost" type="button" onclick="leaveGame()">Volver</button>
+      <p class="hint center">Versión ${APP_VERSION}</p></section>`;
   }
   if (!g) {
     const msg = O.slow ? "No se puede conectar todavía. Comprueba el código y que el anfitrión tenga la página abierta." : "Conectando con la partida…";
@@ -792,8 +987,8 @@ function vOnlineGame() {
       <div class="stack"><h3>Jugadores (${pids.length})</h3>
         <div class="chips">${pids.map(p => `<span class="chip solo">${esc(nameOf(p))}${p === g.host ? ` <span class="pill dim">anfitrión</span>` : ""}${p === ME ? ` <span class="you">tú</span>` : ""}</span>`).join("")}</div>
       </div>
-      <p class="hint">${g.totalRounds} rondas.</p>
-      ${isHost ? `<button class="btn big sun" type="button" ${pids.length < 3 || O.busy ? "disabled" : ""} onclick="H.start()">${pids.length < 3 ? `Faltan ${3 - pids.length} jugadores` : "Empezar partida"}</button>` : waitHost}
+      <p class="hint">${pids.length >= 10 ? "Sala llena: 10 jugadores es el máximo. " : "De 2 a 10 jugadores. "}${g.totalRounds} rondas · ${g.timeLimit ? g.timeLimit + " segundos por respuesta" : "sin límite de tiempo"}.</p>
+      ${isHost ? `<button class="btn big sun" type="button" ${pids.length < 2 || O.busy ? "disabled" : ""} onclick="H.start()">${pids.length < 2 ? "Falta 1 jugador" : "Empezar partida"}</button>` : waitHost}
       ${err}
       <button class="btn ghost" type="button" onclick="leaveGame()">Salir de la sala</button>
     </section>`;
@@ -803,10 +998,13 @@ function vOnlineGame() {
     const mine = O.answers[ME]?.round === g.roundNo ? O.answers[ME].text : null;
     const done = g.order.filter(p => O.answers[p]?.round === g.roundNo);
     const missing = g.order.filter(p => !done.includes(p));
+    const localDeadline = g.deadline ? g.deadline - (O.host ? 0 : (O.clockOffset || 0)) : 0;
+    const timeUp = O.timeUpRound === g.roundNo || (localDeadline && Date.now() > localDeadline);
     return `<section class="card">
       ${top}${roundLbl}
+      ${timeUp ? "" : timerHTML(localDeadline, g.timeLimit, "online")}
       <p class="prompt">${esc(g.prompt)}</p>
-      ${mine === null ? `<p class="hint">Piensa en algo que encaje pero que a nadie más se le ocurra.</p>
+      ${mine === null && timeUp ? `<div class="timeup">¡Se acabó el tiempo! Esta ronda no puntúas.</div>` : mine === null ? `<p class="hint">Algo que encaje y que a nadie más se le ocurra. ¡Y rápido, que cuenta el orden!</p>
       <form class="stack" onsubmit="event.preventDefault();submitOnline(document.getElementById('ans').value)">
         <input type="text" id="ans" autofocus autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="40" placeholder="Tu respuesta secreta">
         <button class="btn big" type="submit">Enviar respuesta</button>
@@ -821,14 +1019,17 @@ function vOnlineGame() {
 
   const rows = g.order.map(p => ({ name: nameOf(p), s: g.scores?.[p] || 0, d: g.lastDelta?.[p] || 0, j: !!g.lastJinx?.[p], me: p === ME }));
   if (g.status === "reveal") {
-    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid) }));
+    const answers = g.revealAnswers.map(a => ({ text: a.text, name: nameOf(a.pid), ord: a.ord, db: a.db }));
     const groups = g.groups.map(x => x.m);
+    const silent = g.order.filter(p => !g.revealAnswers.some(a => a.pid === p));
     return `<section class="card">
       ${top}${roundLbl}
       <p class="prompt">${esc(g.prompt)}</p>
       ${bannerHTML(groups)}
-      ${groupsHTML(answers, groups, g.vetoed || [], isHost ? O.selected : [], isHost, "H")}
-      ${isHost ? `${editControls("H", O.selected.length, O.busy)}<button class="btn big sun" type="button" ${busy} onclick="H.confirm()">Apuntar puntos</button>` : `<p class="hint center">${esc(hostName)} puede unir respuestas iguales o anular las que no valgan.</p>`}
+      ${groupsHTML({ answers, groups, vetoed: g.vetoed || [], selected: isHost ? O.selected : [], editable: isHost, ns: "H", n: g.order.length, votes: g.votes || {}, voteNs: "OV",
+        isMine: ai => g.revealAnswers[ai].pid === ME, voters: () => g.order.length - 1, myVote: ai => g.votes?.[ai]?.[ME] ?? null })}
+      ${noAnswerHTML(silent.map(nameOf))}
+      ${isHost ? `${editControls("H", O.selected.length, O.busy)}<p class="hint">Las respuestas sin valorar cuentan como comunes.</p><button class="btn big sun" type="button" ${busy} onclick="H.confirm()">Apuntar puntos</button>` : `<p class="hint center">${esc(hostName)} puede unir respuestas iguales o anular las que no valgan, y apunta los puntos cuando hayáis votado.</p>`}
       ${err}
     </section>`;
   }
